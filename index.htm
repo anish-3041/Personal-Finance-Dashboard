@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personal Finance Dashboard - Phase 1</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Personal Finance Dashboard</h1>
+        <p>Track your expenses and visualize your spending habits</p>
+      </header>
+
+      <div class="dashboard-grid">
+        <div class="card">
+          <h2>Add New Expense</h2>
+          <form id="expense-form" class="expense-form">
+            <div class="form-group">
+              <label for="expense-name">Expense Description</label>
+              <input
+                type="text"
+                id="expense-name"
+                required
+                placeholder="e.g., Grocery shopping"
+              />
+            </div>
+            <div class="form-group">
+              <label for="expense-amount">Amount ($)</label>
+              <input
+                type="number"
+                id="expense-amount"
+                min="0.01"
+                step="0.01"
+                required
+                placeholder="e.g., 25.50"
+              />
+            </div>
+            <div class="form-group">
+              <label for="expense-category">Category</label>
+              <select id="expense-category" required>
+                <option value="food">Food & Dining</option>
+                <option value="transport">Transportation</option>
+                <option value="utilities">Utilities & Bills</option>
+                <option value="entertainment">Entertainment</option>
+                <option value="shopping">Shopping</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="expense-date">Date</label>
+              <input type="date" id="expense-date" required />
+            </div>
+            <button type="submit">Add Expense</button>
+          </form>
+
+          <div class="total-container">
+            <h3>Total Expenses:</h3>
+            <h3 id="total-amount">$0.00</h3>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Expense Breakdown</h2>
+          <div class="chart-container">
+            <canvas id="expense-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1">
+          <h2>Recent Expenses</h2>
+          <div class="form-group">
+            <label for="month-filter">Filter by Month</label>
+            <input type="month" id="month-filter" />
+          </div>
+          
+          <div id="expense-list" class="expense-list">
+            <!-- Expenses will be added here dynamically -->
+            <div class="expense-item">
+              <div class="expense-details">
+                <h4>No expenses added yet</h4>
+                <p>Add your first expense to get started</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
