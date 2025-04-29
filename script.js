@@ -15,6 +15,14 @@ document.addEventListener("DOMContentLoaded", function () {
 // Global variables
 let expenses = [];
 let expenseChart = null;
+let pendingDeleteId = null;
+
+// Get references to the custom confirmation dialog elements
+const confirmDialog = document.getElementById("confirm-dialog"); // The modal container
+const confirmYesBtn = document.getElementById("confirm-yes");     // "Yes" button
+const confirmNoBtn = document.getElementById("confirm-no");       // "No" button
+
+
 
 document.getElementById("month-filter").addEventListener("change", function () {
   updateUI();
@@ -94,6 +102,7 @@ function updateUI() {
   updateChart(filteredExpenses);
 }
 
+
 function updateExpenseList(filteredExpenses = expenses) {
   const expenseList = document.getElementById("expense-list");
   expenseList.innerHTML = "";
@@ -130,7 +139,7 @@ function updateExpenseList(filteredExpenses = expenses) {
       </div>
       <div class="expense-actions">
         <span class="expense-amount">₹${formattedAmount}</span>
-        <button class="delete-btn" data-id="${expense.id}">Delete</button>
+        <button class="delete-btn" data-id="${expense.id}" aria-label="Delete this expense">Delete</button>
       </div>
     `;
 
@@ -140,11 +149,16 @@ function updateExpenseList(filteredExpenses = expenses) {
   // Add delete event handlers
   document.querySelectorAll(".delete-btn").forEach((button) => {
     button.addEventListener("click", function () {
-      const id = parseInt(this.getAttribute("data-id"));
-      deleteExpense(id);
+      // When a delete button is clicked, store the expense ID in a variable
+      pendingDeleteId = parseInt(this.getAttribute("data-id"));
+    
+      // Show the custom confirmation dialog by removing the 'hidden' class
+      confirmDialog.classList.remove("hidden");
     });
+         
   });
 }
+
 
 // Delete an expense
 function deleteExpense(id) {
@@ -155,12 +169,10 @@ function deleteExpense(id) {
 
 // Update the total amount
 function updateTotalAmount(filteredExpenses = expenses) {
-  const total = filteredExpenses.reduce(
-    (sum, expense) => sum + expense.amount,
-    0
-  );
+  const total = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   document.getElementById("total-amount").textContent = `₹${total.toFixed(2)}`;
 }
+
 
 // Update the chart based on filtered expenses
 function updateChart(filteredExpenses = expenses) {
@@ -219,6 +231,7 @@ function updateChart(filteredExpenses = expenses) {
   });
 }
 
+
 // Helper function to get category name
 function getCategoryName(category) {
   const categoryNames = {
@@ -232,3 +245,22 @@ function getCategoryName(category) {
 
   return categoryNames[category] || category;
 }
+
+// Handle "Yes" button click in the custom confirmation dialog
+confirmYesBtn.addEventListener("click", function () {
+  // If an expense ID is stored, delete that expense
+  if (pendingDeleteId !== null) {
+    deleteExpense(pendingDeleteId);     // Delete the expense from the list
+    pendingDeleteId = null;             // Reset the pending ID
+  }
+
+  // Hide the dialog after action
+  confirmDialog.classList.add("hidden");
+});
+
+// Handle "No" button click — cancel deletion
+confirmNoBtn.addEventListener("click", function () {
+  pendingDeleteId = null;               // Reset the pending ID
+  confirmDialog.classList.add("hidden"); // Hide the dialog
+});
+
