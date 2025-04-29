@@ -264,3 +264,11 @@ confirmNoBtn.addEventListener("click", function () {
   confirmDialog.classList.add("hidden"); // Hide the dialog
 });
 
+// Close the dialog if the user clicks outside the dialog box
+confirmDialog.addEventListener("click", function (event) {
+  // If the user clicked on the background overlay (not the dialog box itself)
+  if (event.target === confirmDialog) {
+    pendingDeleteId = null; // Cancel deletion
+    confirmDialog.classList.add("hidden"); // Hide the dialog
+  }
+});
