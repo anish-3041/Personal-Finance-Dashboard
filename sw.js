@@ -1,5 +1,5 @@
-const CACHE_NAME = 'my-pwa-cache-v1';
-const urlsToCache = ['/', '/index.html', '/styles.css', '/script.js'];
+const CACHE_NAME = 'my-pfd-cache-v1';
+const urlsToCache = ['/', '/index.html', '/style.css', '/script.js', '/manifest.json', 'image-192x192.png', 'image-512x512.json','https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js' ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
