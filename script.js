@@ -2,11 +2,21 @@
 document.addEventListener("DOMContentLoaded", function () {
   const today = new Date();
   const formattedDate = today.toISOString().substr(0, 10);
-  document.getElementById("expense-date").value = formattedDate;
+  const minDate = "2023-01-01"; // You can change this to any cutoff date
+
+  const dateInput = document.getElementById("expense-date");
+  dateInput.value = formattedDate;
+  dateInput.max = formattedDate; // ✅ prevent future dates
+  dateInput.min = minDate; // ✅ prevent too-old dates
 
   // ✅ Set current month in the filter by default (e.g., "2025-04")
   const currentMonth = today.toISOString().substr(0, 7);
-  document.getElementById("month-filter").value = currentMonth;
+  const minMonth = "2023-01"; // Set the same as your expense min date
+
+  const monthFilter = document.getElementById("month-filter");
+  monthFilter.value = currentMonth;
+  monthFilter.max = currentMonth; // Prevent selecting future months
+  monthFilter.min = minMonth; // Prevent selecting too-old months
 
   // Load expenses from local storage
   loadExpenses();
@@ -19,10 +29,8 @@ let pendingDeleteId = null;
 
 // Get references to the custom confirmation dialog elements
 const confirmDialog = document.getElementById("confirm-dialog"); // The modal container
-const confirmYesBtn = document.getElementById("confirm-yes");     // "Yes" button
-const confirmNoBtn = document.getElementById("confirm-no");       // "No" button
-
-
+const confirmYesBtn = document.getElementById("confirm-yes"); // "Yes" button
+const confirmNoBtn = document.getElementById("confirm-no"); // "No" button
 
 document.getElementById("month-filter").addEventListener("change", function () {
   updateUI();
@@ -102,7 +110,6 @@ function updateUI() {
   updateChart(filteredExpenses);
 }
 
-
 function updateExpenseList(filteredExpenses = expenses) {
   const expenseList = document.getElementById("expense-list");
   expenseList.innerHTML = "";
@@ -139,7 +146,9 @@ function updateExpenseList(filteredExpenses = expenses) {
       </div>
       <div class="expense-actions">
         <span class="expense-amount">₹${formattedAmount}</span>
-        <button class="delete-btn" data-id="${expense.id}" aria-label="Delete this expense">Delete</button>
+        <button class="delete-btn" data-id="${
+          expense.id
+        }" aria-label="Delete this expense">Delete</button>
       </div>
     `;
 
@@ -151,14 +160,12 @@ function updateExpenseList(filteredExpenses = expenses) {
     button.addEventListener("click", function () {
       // When a delete button is clicked, store the expense ID in a variable
       pendingDeleteId = parseInt(this.getAttribute("data-id"));
-    
+
       // Show the custom confirmation dialog by removing the 'hidden' class
       confirmDialog.classList.remove("hidden");
     });
-         
   });
 }
-
 
 // Delete an expense
 function deleteExpense(id) {
@@ -169,10 +176,12 @@ function deleteExpense(id) {
 
 // Update the total amount
 function updateTotalAmount(filteredExpenses = expenses) {
-  const total = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const total = filteredExpenses.reduce(
+    (sum, expense) => sum + expense.amount,
+    0
+  );
   document.getElementById("total-amount").textContent = `₹${total.toFixed(2)}`;
 }
-
 
 // Update the chart based on filtered expenses
 function updateChart(filteredExpenses = expenses) {
@@ -231,7 +240,6 @@ function updateChart(filteredExpenses = expenses) {
   });
 }
 
-
 // Helper function to get category name
 function getCategoryName(category) {
   const categoryNames = {
@@ -250,8 +258,8 @@ function getCategoryName(category) {
 confirmYesBtn.addEventListener("click", function () {
   // If an expense ID is stored, delete that expense
   if (pendingDeleteId !== null) {
-    deleteExpense(pendingDeleteId);     // Delete the expense from the list
-    pendingDeleteId = null;             // Reset the pending ID
+    deleteExpense(pendingDeleteId); // Delete the expense from the list
+    pendingDeleteId = null; // Reset the pending ID
   }
 
   // Hide the dialog after action
@@ -260,7 +268,7 @@ confirmYesBtn.addEventListener("click", function () {
 
 // Handle "No" button click — cancel deletion
 confirmNoBtn.addEventListener("click", function () {
-  pendingDeleteId = null;               // Reset the pending ID
+  pendingDeleteId = null; // Reset the pending ID
   confirmDialog.classList.add("hidden"); // Hide the dialog
 });
 
