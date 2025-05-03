@@ -600,4 +600,9 @@ button:hover {
     justify-content: flex-end; /* Align amount + buttons to right */
     gap: 8px;
   }
+
+  .filter-container{
+    flex-direction: column;
+    gap: 10px;
+  }
 }

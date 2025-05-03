@@ -3,9 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Personal Finance Dashboard - Phase 2</title>
+    <title>Personal Finance Dashboard</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <!-- iOS Meta Tags (Optional but recommended) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Money Mitra">
+    <link rel="apple-touch-icon" href="/assets/images/icon-192x192.png">
+    <!-- Chart.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- CSS -->
     <link rel="stylesheet" href="style.css" />
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('ServiceWorker registered:', registration);
+            })
+            .catch((err) => {
+              console.error('ServiceWorker registration failed:', err);
+            });
+        });
+      }
+    </script>
   </head>
   <body>
     <div class="container">
