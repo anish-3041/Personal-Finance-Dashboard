@@ -3,115 +3,312 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Personal Finance Dashboard - Phase 1</title>
-    <link rel="manifest" href="/manifest.json"> 
+    <title>Personal Finance Dashboard - Phase 2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <link rel="stylesheet" href="style.css" />
   </head>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('SW registered! Scope:', reg.scope))
-        .catch(err => console.log('SW failed:', err));
-    }
-  });
-  </script>
-  <div id="confirm-dialog" class="confirm-dialog hidden">
-    <div class="dialog-box">
-      <p id="confirm-text">Are you sure you want to delete this expense?</p>
-      <div class="dialog-buttons">
-        <button id="confirm-yes">Yes</button>
-        <button id="confirm-no">No</button>
-      </div>
-    </div>
-  </div>
   <body>
     <div class="container">
       <header>
-        <h1>Personal Finance Dashboard</h1>
-        <p>Track your expenses and visualize your spending habits</p>
+        <div class="header-top">
+          <h1>Personal Finance Dashboard</h1>
+          <div class="button-group">
+            <button id="import-data">Import Data</button>
+            <button id="export-data">Export Data</button>
+          </div>
+        </div>
+        <p>Track your finances, set budgets, and visualize your money flow</p>
       </header>
 
+      <div class="dashboard-summary slide-in">
+        <div class="summary-card income">
+          <h3>Total Income</h3>
+          <div class="amount" id="total-income">₹0.00</div>
+        </div>
+        <div class="summary-card expense">
+          <h3>Total Expenses</h3>
+          <div class="amount" id="total-expense">₹0.00</div>
+        </div>
+        <div class="summary-card balance">
+          <h3>Current Balance</h3>
+          <div class="amount" id="current-balance">₹0.00</div>
+        </div>
+      </div>
+
       <div class="dashboard-grid">
-        <div class="card">
-          <h2>Add New Expense</h2>
-          <form id="expense-form" class="expense-form">
-            <div class="form-group">
-              <label for="expense-name">Expense Description</label>
-              <input
-                type="text"
-                id="expense-name"
-                required
-                placeholder="e.g., Grocery shopping"
-              />
+        <div class="card fade-in">
+          <h2>
+            Add New Transaction
+            <button class="toggle-btn" id="toggle-transaction-type">
+              Switch to Income
+            </button>
+          </h2>
+
+          <div class="tabs">
+            <div class="tab active" data-tab="expense-tab">Expense</div>
+            <div class="tab" data-tab="income-tab">Income</div>
+          </div>
+
+          <div class="tabs-content">
+            <div id="expense-tab" class="active">
+              <form id="expense-form" class="entry-form">
+                <div class="form-group">
+                  <label for="expense-name">Expense Description</label>
+                  <input
+                    type="text"
+                    id="expense-name"
+                    required
+                    placeholder="e.g., Grocery shopping"
+                  />
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="expense-amount">Amount (₹)</label>
+                    <input
+                      type="number"
+                      id="expense-amount"
+                      min="0.01"
+                      step="0.01"
+                      required
+                      placeholder="e.g., 25.50"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="expense-category">Category</label>
+                    <select id="expense-category" required>
+                      <option value="food">Food & Dining</option>
+                      <option value="transport">Transportation</option>
+                      <option value="utilities">Utilities & Bills</option>
+                      <option value="entertainment">Entertainment</option>
+                      <option value="shopping">Shopping</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="expense-date">Date</label>
+                  <input type="date" id="expense-date" required />
+                </div>
+                <button type="submit">Add Expense</button>
+              </form>
             </div>
-            <div class="form-group">
-              <label for="expense-amount">Amount (₹)</label>
-              <input
-                type="number"
-                id="expense-amount"
-                min="0.01"
-                step="0.01"
-                required
-                placeholder="e.g., 25.50"
-              />
+
+            <div id="income-tab">
+              <form id="income-form" class="entry-form">
+                <div class="form-group">
+                  <label for="income-name">Income Description</label>
+                  <input
+                    type="text"
+                    id="income-name"
+                    required
+                    placeholder="e.g., Monthly Salary"
+                  />
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="income-amount">Amount (₹)</label>
+                    <input
+                      type="number"
+                      id="income-amount"
+                      min="0.01"
+                      step="0.01"
+                      required
+                      placeholder="e.g., 2000.00"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="income-category">Category</label>
+                    <select id="income-category" required>
+                      <option value="salary">Salary & Wages</option>
+                      <option value="investment">Investments</option>
+                      <option value="gifts">Gifts & Rewards</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="income-date">Date</label>
+                  <input type="date" id="income-date" required />
+                </div>
+                <button type="submit">Add Income</button>
+              </form>
             </div>
-            <div class="form-group">
-              <label for="expense-category">Category</label>
-              <select id="expense-category" required>
-                <option value="food">Food & Dining</option>
-                <option value="transport">Transportation</option>
-                <option value="utilities">Utilities & Bills</option>
-                <option value="entertainment">Entertainment</option>
-                <option value="shopping">Shopping</option>
-                <option value="other">Other</option>
+          </div>
+        </div>
+
+        <div class="card fade-in">
+          <h2>Financial Overview</h2>
+          <div class="chart-tabs">
+            <div class="chart-tab active" data-chart="doughnut-chart">
+              Category Breakdown
+            </div>
+            <div class="chart-tab" data-chart="bar-chart">
+              Income vs Expenses
+            </div>
+          </div>
+
+          <div class="filter-container">
+            <div class="filter-group">
+              <label for="chart-period">Period:</label>
+              <select id="chart-period">
+                <option value="all">All Time</option>
+                <option value="month" selected>This Month</option>
+                <option value="week">This Week</option>
               </select>
             </div>
-            <div class="form-group">
-              <label for="expense-date">Date</label>
-              <input type="date" id="expense-date" required />
-            </div>
-            <button type="submit">Add Expense</button>
-          </form>
-
-          <div class="total-container">
-            <h3>Total Expenses:</h3>
-            <h3 id="total-amount">₹0.00</h3>
           </div>
-        </div>
 
-        <div class="card">
-          <h2>Expense Breakdown</h2>
           <div class="chart-container">
-            <canvas
-              id="expense-chart"
-              role="img"
-              aria-label="Expense breakdown chart"
-            ></canvas>
+            <canvas id="doughnut-chart"></canvas>
+            <canvas id="bar-chart" style="display: none"></canvas>
           </div>
         </div>
 
-        <div class="card" style="grid-column: 1 / -1">
-          <h2>Recent Expenses</h2>
-          <div class="form-group">
-            <label for="month-filter">Filter by Month</label>
-            <input type="month" id="month-filter" />
+        <div class="card fade-in">
+          <h2>Budget Management</h2>
+          <div class="budget-container">
+            <form id="budget-form" class="budget-form">
+              <div class="form-group">
+                <select id="budget-category" required>
+                  <option value="">Select Category</option>
+                  <option value="food">Food & Dining</option>
+                  <option value="transport">Transportation</option>
+                  <option value="utilities">Utilities & Bills</option>
+                  <option value="entertainment">Entertainment</option>
+                  <option value="shopping">Shopping</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <input
+                  type="number"
+                  id="budget-amount"
+                  min="1"
+                  step="0.01"
+                  required
+                  placeholder="Monthly Budget ($)"
+                />
+              </div>
+              <button type="submit">Set</button>
+            </form>
+
+            <div id="budget-list">
+              <!-- Budget items will be added here dynamically -->
+              <div class="budget-item">
+                <p>No budgets set yet. Add your first budget to get started.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card fade-in" style="grid-column: 1 / -1">
+          <h2>Recent Transactions</h2>
+          <div class="filter-container">
+            <div class="filter-group">
+              <label for="transaction-type">Type:</label>
+              <select id="transaction-type">
+                <option value="all">All</option>
+                <option value="expense">Expenses</option>
+                <option value="income">Income</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="transaction-period">Period:</label>
+              <select id="transaction-period">
+                <option value="all">All Time</option>
+                <option value="month" selected>This Month</option>
+                <option value="week">This Week</option>
+              </select>
+            </div>
           </div>
 
-          <div id="expense-list" class="expense-list">
-            <!-- Expenses will be added here dynamically -->
-            <div class="expense-item">
-              <div class="expense-details">
-                <h4>No expenses added yet</h4>
-                <p>Add your first expense to get started</p>
+          <div id="transaction-list" class="entry-list">
+            <!-- Transactions will be added here dynamically -->
+            <div class="entry-item">
+              <div class="entry-details">
+                <h4>No transactions added yet</h4>
+                <p>Add your first transaction to get started</p>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+    <div id="edit-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <h3>Edit Transaction</h3>
+        <form id="edit-form" class="entry-form">
+          <input type="hidden" id="edit-id" />
+          <input type="hidden" id="edit-type" />
 
+          <div class="form-group">
+            <label for="edit-name">Description</label>
+            <input type="text" id="edit-name" required />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-amount">Amount (₹)</label>
+              <input
+                type="number"
+                id="edit-amount"
+                min="0.01"
+                step="0.01"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="edit-category">Category</label>
+              <select id="edit-category" required>
+                <option value="food">Food & Dining</option>
+                <option value="transport">Transportation</option>
+                <option value="utilities">Utilities & Bills</option>
+                <option value="entertainment">Entertainment</option>
+                <option value="shopping">Shopping</option>
+                <option value="salary">Salary & Wages</option>
+                <option value="investment">Investments</option>
+                <option value="gifts">Gifts & Rewards</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-date">Date</label>
+            <input type="date" id="edit-date" required />
+          </div>
+          <div class="modal-actions">
+            <button type="submit">Save</button>
+            <button type="button" id="edit-cancel">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div id="budget-edit-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <h3>Edit Budget</h3>
+        <form id="budget-edit-form" class="entry-form">
+          <input type="hidden" id="edit-budget-category" />
+
+          <div class="form-group">
+            <label for="edit-budget-display">Category</label>
+            <input type="text" id="edit-budget-display" disabled />
+          </div>
+          <div class="form-group">
+            <label for="edit-budget-amount">Amount (₹)</label>
+            <input
+              type="number"
+              id="edit-budget-amount"
+              min="1"
+              step="0.01"
+              required
+            />
+          </div>
+          <div class="modal-actions">
+            <button type="submit">Update</button>
+            <button type="button" id="cancel-budget-edit">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
     <script src="script.js"></script>
   </body>
 </html>
