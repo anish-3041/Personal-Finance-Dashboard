@@ -45,8 +45,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Replace old transaction
     const typeList = type === "expense" ? "expenses" : "incomes";
-    const index = transactions[typeList].findIndex(item => item.id === id);
-    
+    const index = transactions[typeList].findIndex((item) => item.id === id);
+
     if (index !== -1) {
       transactions[typeList][index] = updated;
     }
@@ -58,28 +58,34 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   // Cancel budget edit
-  document.getElementById("cancel-budget-edit").addEventListener("click", () => {
-    document.getElementById("budget-edit-modal").classList.add("hidden");
-  });
+  document
+    .getElementById("cancel-budget-edit")
+    .addEventListener("click", () => {
+      document.getElementById("budget-edit-modal").classList.add("hidden");
+    });
 
   // Save updated budget
-  document.getElementById("budget-edit-form").addEventListener("submit", function (e) {
-    e.preventDefault();
+  document
+    .getElementById("budget-edit-form")
+    .addEventListener("submit", function (e) {
+      e.preventDefault();
 
-    const category = document.getElementById("edit-budget-category").value;
-    const amount = parseFloat(document.getElementById("edit-budget-amount").value);
+      const category = document.getElementById("edit-budget-category").value;
+      const amount = parseFloat(
+        document.getElementById("edit-budget-amount").value
+      );
 
-    if (amount <= 0 || isNaN(amount)) {
-      showNotification("Invalid budget amount", "error");
-      return;
-    }
+      if (amount <= 0 || isNaN(amount)) {
+        showNotification("Invalid budget amount", "error");
+        return;
+      }
 
-    budgets[category] = amount;
-    saveData();
-    updateBudgetList();
-    showNotification("Budget updated successfully!");
-    document.getElementById("budget-edit-modal").classList.add("hidden");
-  });
+      budgets[category] = amount;
+      saveData();
+      updateBudgetList();
+      showNotification("Budget updated successfully!");
+      document.getElementById("budget-edit-modal").classList.add("hidden");
+    });
 
   // Set up tab switching
   setupTabs();
@@ -91,12 +97,21 @@ document.addEventListener("DOMContentLoaded", function () {
   addExportImportFeatures();
 });
 
-// Set default dates for forms
 function setDefaultDates() {
   const today = new Date();
-  const formattedDate = today.toISOString().substr(0, 10);
-  document.getElementById("expense-date").value = formattedDate;
-  document.getElementById("income-date").value = formattedDate;
+  const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
+
+  // Set default value to today AND apply min/max
+  const expenseDateInput = document.getElementById("expense-date");
+  const incomeDateInput = document.getElementById("income-date");
+
+  expenseDateInput.value = formattedDate;  // Set default to today
+  expenseDateInput.min = "2023-01-01";    // Minimum date
+  expenseDateInput.max = formattedDate;    // Maximum date (today)
+
+  incomeDateInput.value = formattedDate;   // Set default to today
+  incomeDateInput.min = "2023-01-01";     // Minimum date
+  incomeDateInput.max = formattedDate;    // Maximum date (today)
 }
 
 // Load data from local storage
@@ -230,11 +245,18 @@ function setupTabs() {
 function handleExpenseSubmit(e) {
   e.preventDefault();
 
+  const date = document.getElementById("expense-date").value;
+
+  // Validate date
+  if (!validateDate(date)) {
+    showNotification("Date must be between 01-01-2023 and today!", "error");
+    return; // Stop form submission
+  }
+
   // Get form values
   const name = document.getElementById("expense-name").value;
   const amount = parseFloat(document.getElementById("expense-amount").value);
   const category = document.getElementById("expense-category").value;
-  const date = document.getElementById("expense-date").value;
 
   // Create new expense object
   const expense = {
@@ -269,11 +291,18 @@ function handleExpenseSubmit(e) {
 function handleIncomeSubmit(e) {
   e.preventDefault();
 
+  const date = document.getElementById("income-date").value;
+
+  // Validate date
+  if (!validateDate(date)) {
+    showNotification("Date must be between 01-01-2023 and today!", "error");
+    return;
+  }
+
   // Get form values
   const name = document.getElementById("income-name").value;
   const amount = parseFloat(document.getElementById("income-amount").value);
   const category = document.getElementById("income-category").value;
-  const date = document.getElementById("income-date").value;
 
   // Create new income object
   const income = {
@@ -549,7 +578,7 @@ function handleEditTransaction(id, type) {
   // Determine the correct array based on type
   const typeList = type === "expense" ? "expenses" : "incomes";
   const item = transactions[typeList].find((entry) => entry.id === id);
-  
+
   if (!item) {
     console.error(`Transaction with ID ${id} not found in ${typeList}`);
     return;
@@ -944,15 +973,15 @@ function updateBudgetList() {
     button.addEventListener("click", function () {
       const category = this.getAttribute("data-category");
       const amount = budgets[category];
-  
+
       document.getElementById("edit-budget-category").value = category;
-      document.getElementById("edit-budget-display").value = getCategoryName(category);
+      document.getElementById("edit-budget-display").value =
+        getCategoryName(category);
       document.getElementById("edit-budget-amount").value = amount;
-  
+
       document.getElementById("budget-edit-modal").classList.remove("hidden");
     });
   });
-  
 }
 
 // Delete a budget
@@ -1039,6 +1068,20 @@ function showNotification(message, type = "success") {
       document.body.removeChild(notification);
     }, 300);
   }, 3000);
+}
+
+/*
+ * Validates if a date is between 01-01-2023 and today.
+ * @param {string} dateString - Date in YYYY-MM-DD format.
+ * @returns {boolean} - True if valid, false otherwise.
+ */
+function validateDate(dateString) {
+  const date = new Date(dateString);
+  const minDate = new Date("2023-01-01");
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // Include entire day
+
+  return date >= minDate && date <= today;
 }
 
 // Export/Import functionality
