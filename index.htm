@@ -32,306 +32,308 @@
   </head>
   <body>
     <div class="container">
-      <header>
-        <div class="header-top">
-          <h1>Personal Finance Dashboard</h1>
-          <div class="button-group">
-            <button id="import-data">Import Data</button>
-            <button id="export-data">Export Data</button>
-          </div>
-        </div>
-        <p>Track your finances, set budgets, and visualize your money flow</p>
-      </header>
-
-      <div class="dashboard-summary slide-in">
-        <div class="summary-card income">
-          <h3>Total Income</h3>
-          <div class="amount" id="total-income">₹0.00</div>
-        </div>
-        <div class="summary-card expense">
-          <h3>Total Expenses</h3>
-          <div class="amount" id="total-expense">₹0.00</div>
-        </div>
-        <div class="summary-card balance">
-          <h3>Current Balance</h3>
-          <div class="amount" id="current-balance">₹0.00</div>
-        </div>
-      </div>
-
-      <div class="dashboard-grid">
-        <div class="card fade-in">
-          <h2>
-            Add New Transaction
-            <button class="toggle-btn" id="toggle-transaction-type">
-              Switch to Income
-            </button>
-          </h2>
-
-          <div class="tabs">
-            <div class="tab active" data-tab="expense-tab">Expense</div>
-            <div class="tab" data-tab="income-tab">Income</div>
-          </div>
-
-          <div class="tabs-content">
-            <div id="expense-tab" class="active">
-              <form id="expense-form" class="entry-form">
-                <div class="form-group">
-                  <label for="expense-name">Expense Description</label>
-                  <input
-                    type="text"
-                    id="expense-name"
-                    required
-                    placeholder="e.g., Grocery shopping"
-                  />
+        <header>
+            <h1>Personal Finance Dashboard</h1>
+            <p>Track your finances, set budgets, and visualize your money flow</p>
+            
+            <!-- Theme Toggle -->
+            <div class="theme-toggle">
+                <button id="theme-toggle-btn">
+                    <i class="fas fa-moon"></i>
+                    <span>Dark Mode</span>
+                </button>
+            </div>
+        </header>
+        
+        <div class="dashboard-summary slide-in">
+            <div class="summary-card income">
+                <h3>Total Income</h3>
+                <div class="amount" id="total-income">₹0.00</div>
+                <div class="summary-trend" id="income-trend">
+                    <span class="trend-value">0%</span>
+                    <i class="fas fa-equals"></i>
                 </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="expense-amount">Amount (₹)</label>
-                    <input
-                      type="number"
-                      id="expense-amount"
-                      min="0.01"
-                      step="0.01"
-                      required
-                      placeholder="e.g., 25.50"
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label for="expense-category">Category</label>
-                    <select id="expense-category" required>
-                      <option value="food">Food & Dining</option>
-                      <option value="transport">Transportation</option>
-                      <option value="utilities">Utilities & Bills</option>
-                      <option value="entertainment">Entertainment</option>
-                      <option value="shopping">Shopping</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label for="expense-date">Date</label>
-                  <input type="date" id="expense-date" required />
-                </div>
-                <button type="submit">Add Expense</button>
-              </form>
             </div>
-
-            <div id="income-tab">
-              <form id="income-form" class="entry-form">
-                <div class="form-group">
-                  <label for="income-name">Income Description</label>
-                  <input
-                    type="text"
-                    id="income-name"
-                    required
-                    placeholder="e.g., Monthly Salary"
-                  />
+            <div class="summary-card expense">
+                <h3>Total Expenses</h3>
+                <div class="amount" id="total-expense">₹0.00</div>
+                <div class="summary-trend" id="expense-trend">
+                    <span class="trend-value">0%</span>
+                    <i class="fas fa-equals"></i>
                 </div>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="income-amount">Amount (₹)</label>
-                    <input
-                      type="number"
-                      id="income-amount"
-                      min="0.01"
-                      step="0.01"
-                      required
-                      placeholder="e.g., 2000.00"
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label for="income-category">Category</label>
-                    <select id="income-category" required>
-                      <option value="salary">Salary & Wages</option>
-                      <option value="investment">Investments</option>
-                      <option value="gifts">Gifts & Rewards</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label for="income-date">Date</label>
-                  <input type="date" id="income-date" required />
-                </div>
-                <button type="submit">Add Income</button>
-              </form>
             </div>
-          </div>
+            <div class="summary-card balance">
+                <h3>Current Balance</h3>
+                <div class="amount" id="current-balance">₹0.00</div>
+                <div class="summary-trend" id="balance-trend">
+                    <span class="trend-value">0%</span>
+                    <i class="fas fa-equals"></i>
+                </div>
+            </div>
+            <div class="summary-card savings">
+                <h3>Savings Rate</h3>
+                <div class="amount" id="savings-rate">0%</div>
+                <div class="savings-tip" id="savings-tip">
+                    Aim for 20% or more
+                </div>
+            </div>
         </div>
-
-        <div class="card fade-in">
-          <h2>Financial Overview</h2>
-          <div class="chart-tabs">
-            <div class="chart-tab active" data-chart="doughnut-chart">
-              Category Breakdown
+        
+        <div class="dashboard-grid">
+            <div class="card fade-in">
+                <h2>
+                    Add New Transaction
+                    <button class="toggle-btn" id="toggle-transaction-type">Switch to Income</button>
+                </h2>
+                
+                <div class="tabs">
+                    <div class="tab active" data-tab="expense-tab">Expense</div>
+                    <div class="tab" data-tab="income-tab">Income</div>
+                </div>
+                
+                <div class="tabs-content">
+                    <div id="expense-tab" class="active">
+                        <form id="expense-form" class="entry-form">
+                            <div class="form-group">
+                                <label for="expense-name">Expense Description</label>
+                                <input type="text" id="expense-name" required placeholder="e.g., Grocery shopping">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="expense-amount">Amount (₹)</label>
+                                    <input type="number" id="expense-amount" min="0.01" step="0.01" required placeholder="e.g., 25.50">
+                                </div>
+                                <div class="form-group">
+                                    <label for="expense-category">Category</label>
+                                    <select id="expense-category" required>
+                                        <option value="food">Food & Dining</option>
+                                        <option value="transport">Transportation</option>
+                                        <option value="utilities">Utilities & Bills</option>
+                                        <option value="entertainment">Entertainment</option>
+                                        <option value="shopping">Shopping</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="expense-date">Date</label>
+                                <input type="date" id="expense-date" required>
+                            </div>
+                            <button type="submit">Add Expense</button>
+                        </form>
+                    </div>
+                    
+                    <div id="income-tab">
+                        <form id="income-form" class="entry-form">
+                            <div class="form-group">
+                                <label for="income-name">Income Description</label>
+                                <input type="text" id="income-name" required placeholder="e.g., Monthly Salary">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="income-amount">Amount (₹)</label>
+                                    <input type="number" id="income-amount" min="0.01" step="0.01" required placeholder="e.g., 2000.00">
+                                </div>
+                                <div class="form-group">
+                                    <label for="income-category">Category</label>
+                                    <select id="income-category" required>
+                                        <option value="salary">Salary & Wages</option>
+                                        <option value="investment">Investments</option>
+                                        <option value="gifts">Gifts & Rewards</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="income-date">Date</label>
+                                <input type="date" id="income-date" required>
+                            </div>
+                            <button type="submit">Add Income</button>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="chart-tab" data-chart="bar-chart">
-              Income vs Expenses
+            
+            <div class="card fade-in">
+                <h2>Financial Overview</h2>
+                <div class="chart-tabs">
+                    <div class="chart-tab active" data-chart="doughnut-chart">Category Breakdown</div>
+                    <div class="chart-tab" data-chart="bar-chart">Income vs Expenses</div>
+                    <div class="chart-tab" data-chart="monthly-comparison-chart">Monthly Comparison</div>
+                </div>
+                
+                <div class="filter-container">
+                    <div class="filter-group">
+                        <label for="chart-period">Period:</label>
+                        <select id="chart-period">
+                            <option value="all">All Time</option>
+                            <option value="month" selected>This Month</option>
+                            <option value="week">This Week</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="doughnut-chart"></canvas>
+                    <canvas id="bar-chart" style="display: none;"></canvas>
+                    <canvas id="monthly-comparison-chart" style="display: none;"></canvas>
+                </div>
             </div>
-          </div>
-
-          <div class="filter-container">
-            <div class="filter-group">
-              <label for="chart-period">Period:</label>
-              <select id="chart-period">
-                <option value="all">All Time</option>
-                <option value="month" selected>This Month</option>
-                <option value="week">This Week</option>
-              </select>
+            
+            <div class="card fade-in">
+                <h2>Budget Management</h2>
+                <div class="budget-container">
+                    <form id="budget-form" class="budget-form">
+                        <div class="form-group">
+                            <select id="budget-category" required>
+                                <option value="">Select Category</option>
+                                <option value="food">Food & Dining</option>
+                                <option value="transport">Transportation</option>
+                                <option value="utilities">Utilities & Bills</option>
+                                <option value="entertainment">Entertainment</option>
+                                <option value="shopping">Shopping</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="number" id="budget-amount" min="1" step="0.01" required placeholder="Monthly Budget (₹)">
+                        </div>
+                        <button type="submit">Set</button>
+                    </form>
+                    
+                    <div id="budget-list">
+                        <!-- Budget items will be added here dynamically -->
+                        <div class="budget-item">
+                            <p>No budgets set yet. Add your first budget to get started.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-
-          <div class="chart-container">
-            <canvas id="doughnut-chart"></canvas>
-            <canvas id="bar-chart" style="display: none"></canvas>
-          </div>
+            
+            <!-- New Card: Financial Goals -->
+            <div class="card fade-in">
+                <h2>Financial Goals</h2>
+                <div class="goals-container">
+                    <form id="goal-form" class="goal-form">
+                        <div class="form-group">
+                            <input type="text" id="goal-name" required placeholder="Goal Name (e.g., New Car)">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <input type="number" id="goal-target" min="1" step="0.01" required placeholder="Target Amount (₹)">
+                            </div>
+                            <div class="form-group">
+                                <input type="date" id="goal-date" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <input type="number" id="goal-current" min="0" step="0.01" required placeholder="Current Savings (₹)">
+                        </div>
+                        <button type="submit">Add Goal</button>
+                    </form>
+                    
+                    <div id="goals-list">
+                        <!-- Goals will be added here dynamically -->
+                        <div class="goal-item">
+                            <p>No goals set yet. Add your first financial goal to get started.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- New Card: Savings Calculator -->
+            <div class="card fade-in">
+                <h2>Savings Calculator</h2>
+                <div class="calculator-container">
+                    <form id="savings-calculator-form" class="calculator-form">
+                        <div class="form-group">
+                            <label for="monthly-savings">Monthly Savings (₹)</label>
+                            <input type="number" id="monthly-savings" min="0" step="0.01" required placeholder="e.g., 5000">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="interest-rate">Annual Interest Rate (%)</label>
+                                <input type="number" id="interest-rate" min="0" step="0.01" required placeholder="e.g., 7.5">
+                            </div>
+                            <div class="form-group">
+                                <label for="time-period">Time Period (Years)</label>
+                                <input type="number" id="time-period" min="1" max="50" step="1" required placeholder="e.g., 10">
+                            </div>
+                        </div>
+                        <button type="submit">Calculate</button>
+                    </form>
+                    
+                    <div id="savings-results" class="savings-results">
+                        <div class="results-panel">
+                            <p>Fill the form to calculate your future savings</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card fade-in" style="grid-column: 1 / -1;">
+                <h2>Recent Transactions</h2>
+                <div class="filter-container">
+                    <div class="filter-group">
+                        <label for="transaction-type">Type:</label>
+                        <select id="transaction-type">
+                            <option value="all">All</option>
+                            <option value="expense">Expenses</option>
+                            <option value="income">Income</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="transaction-period">Period:</label>
+                        <select id="transaction-period">
+                            <option value="all">All Time</option>
+                            <option value="month" selected>This Month</option>
+                            <option value="week">This Week</option>
+                        </select>
+                    </div>
+                    <div class="search-group">
+                        <input type="text" id="transaction-search" placeholder="Search transactions...">
+                    </div>
+                </div>
+                
+                <div id="transaction-list" class="entry-list">
+                    <!-- Transactions will be added here dynamically -->
+                    <div class="entry-item">
+                        <div class="entry-details">
+                            <h4>No transactions added yet</h4>
+                            <p>Add your first transaction to get started</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="card fade-in footer-card" style="grid-column: 1 / -1;">
+                <div class="footer-actions">
+                    <div class="action-buttons">
+                        <button id="export-data" class="action-btn">
+                            <i class="fas fa-download"></i> Export Data
+                        </button>
+                        <button id="import-data" class="action-btn">
+                            <i class="fas fa-upload"></i> Import Data
+                        </button>
+                        <button id="generate-report" class="action-btn">
+                            <i class="fas fa-file-pdf"></i> Generate Report
+                        </button>
+                        <button id="add-sample-data" class="action-btn">
+                            <i class="fas fa-database"></i> Add Sample Data
+                        </button>
+                    </div>
+                </div>
+                <div class="footer-info">
+                    <p>Personal Finance Dashboard - Phase 3</p>
+                </div>
+            </div>
         </div>
-
-        <div class="card fade-in">
-          <h2>Budget Management</h2>
-          <div class="budget-container">
-            <form id="budget-form" class="budget-form">
-              <div class="form-group">
-                <select id="budget-category" required>
-                  <option value="">Select Category</option>
-                  <option value="food">Food & Dining</option>
-                  <option value="transport">Transportation</option>
-                  <option value="utilities">Utilities & Bills</option>
-                  <option value="entertainment">Entertainment</option>
-                  <option value="shopping">Shopping</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <input
-                  type="number"
-                  id="budget-amount"
-                  min="1"
-                  step="0.01"
-                  required
-                  placeholder="Monthly Budget ($)"
-                />
-              </div>
-              <button type="submit">Set</button>
-            </form>
-
-            <div id="budget-list">
-              <!-- Budget items will be added here dynamically -->
-              <div class="budget-item">
-                <p>No budgets set yet. Add your first budget to get started.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card fade-in" style="grid-column: 1 / -1">
-          <h2>Recent Transactions</h2>
-          <div class="filter-container">
-            <div class="filter-group">
-              <label for="transaction-type">Type:</label>
-              <select id="transaction-type">
-                <option value="all">All</option>
-                <option value="expense">Expenses</option>
-                <option value="income">Income</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label for="transaction-period">Period:</label>
-              <select id="transaction-period">
-                <option value="all">All Time</option>
-                <option value="month" selected>This Month</option>
-                <option value="week">This Week</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="transaction-list" class="entry-list">
-            <!-- Transactions will be added here dynamically -->
-            <div class="entry-item">
-              <div class="entry-details">
-                <h4>No transactions added yet</h4>
-                <p>Add your first transaction to get started</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-    <div id="edit-modal" class="modal-overlay hidden">
-      <div class="modal">
-        <h3>Edit Transaction</h3>
-        <form id="edit-form" class="entry-form">
-          <input type="hidden" id="edit-id" />
-          <input type="hidden" id="edit-type" />
 
-          <div class="form-group">
-            <label for="edit-name">Description</label>
-            <input type="text" id="edit-name" required />
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="edit-amount">Amount (₹)</label>
-              <input
-                type="number"
-                id="edit-amount"
-                min="0.01"
-                step="0.01"
-                required
-              />
-            </div>
-            <div class="form-group">
-              <label for="edit-category">Category</label>
-              <select id="edit-category" required>
-                <option value="food">Food & Dining</option>
-                <option value="transport">Transportation</option>
-                <option value="utilities">Utilities & Bills</option>
-                <option value="entertainment">Entertainment</option>
-                <option value="shopping">Shopping</option>
-                <option value="salary">Salary & Wages</option>
-                <option value="investment">Investments</option>
-                <option value="gifts">Gifts & Rewards</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="edit-date">Date</label>
-            <input type="date" id="edit-date" required />
-          </div>
-          <div class="modal-actions">
-            <button type="submit">Save</button>
-            <button type="button" id="edit-cancel">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    <div id="budget-edit-modal" class="modal-overlay hidden">
-      <div class="modal">
-        <h3>Edit Budget</h3>
-        <form id="budget-edit-form" class="entry-form">
-          <input type="hidden" id="edit-budget-category" />
-
-          <div class="form-group">
-            <label for="edit-budget-display">Category</label>
-            <input type="text" id="edit-budget-display" disabled />
-          </div>
-          <div class="form-group">
-            <label for="edit-budget-amount">Amount (₹)</label>
-            <input
-              type="number"
-              id="edit-budget-amount"
-              min="1"
-              step="0.01"
-              required
-            />
-          </div>
-          <div class="modal-actions">
-            <button type="submit">Update</button>
-            <button type="button" id="cancel-budget-edit">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    <script src="script.js"></script>
-  </body>
+    <!-- Hidden file input for import -->
+    <input type="file" id="import-file" style="display: none;" accept=".json">
+    
+    <script src="script.js"></script>    
+</body>
 </html>

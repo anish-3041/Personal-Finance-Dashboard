@@ -1,1175 +1,1715 @@
-// Global variables
-let transactions = {
-  expenses: [],
-  incomes: [],
-};
-let charts = {
-  doughnut: null,
-  bar: null,
-};
-let budgets = {};
+// Initialize the application when DOM is fully loaded
+document.addEventListener("DOMContentLoaded", () => {
+  // App State
+  const state = {
+    transactions: [],
+    budgets: {},
+    goals: [],
+    theme: localStorage.getItem("theme") || "light",
+    comparisons: {
+      previousMonthIncome: 0,
+      previousMonthExpense: 0,
+      currentMonthIncome: 0,
+      currentMonthExpense: 0,
+    },
+  };
 
-// Initialize the application
-document.addEventListener("DOMContentLoaded", function () {
-  // Set today's date as default for forms
-  setDefaultDates();
+  // DOM Elements
+  const elements = {
+    // Forms
+    expenseForm: document.getElementById("expense-form"),
+    incomeForm: document.getElementById("income-form"),
+    budgetForm: document.getElementById("budget-form"),
+    goalForm: document.getElementById("goal-form"),
+    savingsCalcForm: document.getElementById("savings-calculator-form"),
 
-  // Load data from local storage
-  loadData();
+    // Display areas
+    transactionList: document.getElementById("transaction-list"),
+    budgetList: document.getElementById("budget-list"),
+    goalsList: document.getElementById("goals-list"),
+    savingsResults: document.getElementById("savings-results"),
 
-  // Initialize UI event listeners
-  initializeEventListeners();
+    // Summary elements
+    totalIncome: document.getElementById("total-income"),
+    totalExpense: document.getElementById("total-expense"),
+    currentBalance: document.getElementById("current-balance"),
+    savingsRate: document.getElementById("savings-rate"),
+    incomeTrend: document.getElementById("income-trend"),
+    expenseTrend: document.getElementById("expense-trend"),
+    balanceTrend: document.getElementById("balance-trend"),
 
-  // === Edit Modal: Save & Cancel ===
+    // Chart elements
+    doughnutChart: document.getElementById("doughnut-chart"),
+    barChart: document.getElementById("bar-chart"),
+    monthlyComparisonChart: document.getElementById("monthly-comparison-chart"),
 
-  // Hide modal on cancel
-  document.getElementById("edit-cancel").addEventListener("click", () => {
-    document.getElementById("edit-modal").classList.add("hidden");
-  });
+    // Filters
+    chartPeriod: document.getElementById("chart-period"),
+    transactionType: document.getElementById("transaction-type"),
+    transactionPeriod: document.getElementById("transaction-period"),
+    transactionSearch: document.getElementById("transaction-search"),
 
-  // Save updated transaction
-  document.getElementById("edit-form").addEventListener("submit", function (e) {
+    // Action buttons
+    themeToggleBtn: document.getElementById("theme-toggle-btn"),
+    exportDataBtn: document.getElementById("export-data"),
+    importDataBtn: document.getElementById("import-data"),
+    generateReportBtn: document.getElementById("generate-report"),
+    addSampleDataBtn: document.getElementById("add-sample-data"),
+    importFile: document.getElementById("import-file"),
+  };
+
+  // Charts
+  let charts = {
+    doughnut: null,
+    bar: null,
+    monthlyComparison: null,
+  };
+
+  // Initialize app
+  initApp();
+
+  // Function to initialize the application
+  function initApp() {
+    // Load data from local storage
+    loadFromLocalStorage();
+
+    // Set up event listeners
+    setupEventListeners();
+
+    // Initialize UI
+    initializeUI();
+
+    // Apply current theme
+    applyTheme();
+
+    // Render all data
+    renderData();
+  }
+
+  // Event listeners setup
+  function setupEventListeners() {
+    // Form submissions
+    elements.expenseForm.addEventListener("submit", handleExpenseSubmit);
+    elements.incomeForm.addEventListener("submit", handleIncomeSubmit);
+    elements.budgetForm.addEventListener("submit", handleBudgetSubmit);
+    elements.goalForm.addEventListener("submit", handleGoalSubmit);
+    elements.savingsCalcForm.addEventListener("submit", handleSavingsCalc);
+
+    // Tab switching
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => switchTab(tab));
+    });
+
+    document.querySelectorAll(".chart-tab").forEach((tab) => {
+      tab.addEventListener("click", () => switchChartTab(tab));
+    });
+
+    // Filters
+    elements.chartPeriod.addEventListener("change", updateCharts);
+    elements.transactionType.addEventListener("change", filterTransactions);
+    elements.transactionPeriod.addEventListener("change", filterTransactions);
+    elements.transactionSearch.addEventListener("input", filterTransactions);
+
+    // Theme toggle
+    elements.themeToggleBtn.addEventListener("click", toggleTheme);
+
+    // Data operations
+    elements.exportDataBtn.addEventListener("click", exportData);
+    elements.importDataBtn.addEventListener("click", () =>
+      elements.importFile.click()
+    );
+    elements.importFile.addEventListener("change", importData);
+    elements.generateReportBtn.addEventListener("click", generateReport);
+    elements.addSampleDataBtn.addEventListener("click", addSampleData);
+  }
+
+  // Initialize UI elements
+  function initializeUI() {
+    // Set current date as default for forms
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("expense-date").value = today;
+    document.getElementById("income-date").value = today;
+    document.getElementById("goal-date").value = new Date(
+      new Date().setFullYear(new Date().getFullYear() + 1)
+    )
+      .toISOString()
+      .split("T")[0];
+
+    // Set up toggle button text
+    document.getElementById("toggle-transaction-type").textContent =
+      "Switch to Income";
+
+    // Initialize tabs
+    document.querySelectorAll(".tab")[0].classList.add("active");
+    document.getElementById("expense-tab").classList.add("active");
+
+    document.querySelectorAll(".chart-tab")[0].classList.add("active");
+    document.getElementById("doughnut-chart").style.display = "block";
+  }
+
+  // Load data from localStorage
+  function loadFromLocalStorage() {
+    try {
+      const savedTransactions = localStorage.getItem("transactions");
+      const savedBudgets = localStorage.getItem("budgets");
+      const savedGoals = localStorage.getItem("goals");
+
+      if (savedTransactions) state.transactions = JSON.parse(savedTransactions);
+      if (savedBudgets) state.budgets = JSON.parse(savedBudgets);
+      if (savedGoals) state.goals = JSON.parse(savedGoals);
+
+      calculateMonthlyComparisons();
+    } catch (error) {
+      console.error("Error loading data from localStorage:", error);
+      showNotification("Error loading saved data.", "error");
+    }
+  }
+
+  // Save data to localStorage
+  function saveToLocalStorage() {
+    try {
+      localStorage.setItem("transactions", JSON.stringify(state.transactions));
+      localStorage.setItem("budgets", JSON.stringify(state.budgets));
+      localStorage.setItem("goals", JSON.stringify(state.goals));
+      localStorage.setItem("theme", state.theme);
+    } catch (error) {
+      console.error("Error saving to localStorage:", error);
+      showNotification("Error saving data.", "error");
+    }
+  }
+
+  // Handle expense form submission
+  function handleExpenseSubmit(e) {
     e.preventDefault();
 
-    const id = parseInt(document.getElementById("edit-id").value);
-    const type = document.getElementById("edit-type").value;
+    const name = document.getElementById("expense-name").value;
+    const amount = parseFloat(document.getElementById("expense-amount").value);
+    const category = document.getElementById("expense-category").value;
+    const date = document.getElementById("expense-date").value;
 
-    const updated = {
-      id: id, // Keep the original ID to properly update
-      name: document.getElementById("edit-name").value,
-      amount: parseFloat(document.getElementById("edit-amount").value),
-      category: document.getElementById("edit-category").value,
-      date: document.getElementById("edit-date").value,
-      timestamp: new Date().toISOString(),
+    const transaction = {
+      id: generateId(),
+      type: "expense",
+      name,
+      amount,
+      category,
+      date,
+      timestamp: new Date().getTime(),
     };
 
-    // Replace old transaction
-    const typeList = type === "expense" ? "expenses" : "incomes";
-    const index = transactions[typeList].findIndex((item) => item.id === id);
+    state.transactions.push(transaction);
+    saveToLocalStorage();
 
-    if (index !== -1) {
-      transactions[typeList][index] = updated;
-    }
+    elements.expenseForm.reset();
+    document.getElementById("expense-date").value = new Date()
+      .toISOString()
+      .split("T")[0];
 
-    saveData();
-    updateUI();
-    showNotification("Transaction updated successfully!");
-    document.getElementById("edit-modal").classList.add("hidden");
-  });
-
-  // Cancel budget edit
-  document
-    .getElementById("cancel-budget-edit")
-    .addEventListener("click", () => {
-      document.getElementById("budget-edit-modal").classList.add("hidden");
-    });
-
-  // Save updated budget
-  document
-    .getElementById("budget-edit-form")
-    .addEventListener("submit", function (e) {
-      e.preventDefault();
-
-      const category = document.getElementById("edit-budget-category").value;
-      const amount = parseFloat(
-        document.getElementById("edit-budget-amount").value
-      );
-
-      if (amount <= 0 || isNaN(amount)) {
-        showNotification("Invalid budget amount", "error");
-        return;
-      }
-
-      budgets[category] = amount;
-      saveData();
-      updateBudgetList();
-      showNotification("Budget updated successfully!");
-      document.getElementById("budget-edit-modal").classList.add("hidden");
-    });
-
-  // Set up tab switching
-  setupTabs();
-
-  // Update UI with loaded data
-  updateUI();
-
-  // Add export/import features
-  addExportImportFeatures();
-});
-
-function setDefaultDates() {
-  const today = new Date();
-  const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD
-
-  // Set default value to today AND apply min/max
-  const expenseDateInput = document.getElementById("expense-date");
-  const incomeDateInput = document.getElementById("income-date");
-
-  expenseDateInput.value = formattedDate;  // Set default to today
-  expenseDateInput.min = "2023-01-01";    // Minimum date
-  expenseDateInput.max = formattedDate;    // Maximum date (today)
-
-  incomeDateInput.value = formattedDate;   // Set default to today
-  incomeDateInput.min = "2023-01-01";     // Minimum date
-  incomeDateInput.max = formattedDate;    // Maximum date (today)
-}
-
-// Load data from local storage
-function loadData() {
-  // Load transactions
-  const savedExpenses = localStorage.getItem("expenses");
-  if (savedExpenses) {
-    transactions.expenses = JSON.parse(savedExpenses);
+    renderData();
+    showNotification("Expense added successfully!", "success");
   }
-
-  const savedIncomes = localStorage.getItem("incomes");
-  if (savedIncomes) {
-    transactions.incomes = JSON.parse(savedIncomes);
-  }
-
-  // Load budgets
-  const savedBudgets = localStorage.getItem("budgets");
-  if (savedBudgets) {
-    budgets = JSON.parse(savedBudgets);
-  }
-}
-
-// Save data to local storage
-function saveData() {
-  localStorage.setItem("expenses", JSON.stringify(transactions.expenses));
-  localStorage.setItem("incomes", JSON.stringify(transactions.incomes));
-  localStorage.setItem("budgets", JSON.stringify(budgets));
-}
-
-// Initialize event listeners
-function initializeEventListeners() {
-  // Handle expense form submission
-  document
-    .getElementById("expense-form")
-    .addEventListener("submit", handleExpenseSubmit);
 
   // Handle income form submission
-  document
-    .getElementById("income-form")
-    .addEventListener("submit", handleIncomeSubmit);
+  function handleIncomeSubmit(e) {
+    e.preventDefault();
+
+    const name = document.getElementById("income-name").value;
+    const amount = parseFloat(document.getElementById("income-amount").value);
+    const category = document.getElementById("income-category").value;
+    const date = document.getElementById("income-date").value;
+
+    const transaction = {
+      id: generateId(),
+      type: "income",
+      name,
+      amount,
+      category,
+      date,
+      timestamp: new Date().getTime(),
+    };
+
+    state.transactions.push(transaction);
+    saveToLocalStorage();
+
+    elements.incomeForm.reset();
+    document.getElementById("income-date").value = new Date()
+      .toISOString()
+      .split("T")[0];
+
+    renderData();
+    showNotification("Income added successfully!", "success");
+  }
 
   // Handle budget form submission
-  document
-    .getElementById("budget-form")
-    .addEventListener("submit", handleBudgetSubmit);
+  function handleBudgetSubmit(e) {
+    e.preventDefault();
 
-  // Handle chart period change
-  document
-    .getElementById("chart-period")
-    .addEventListener("change", updateCharts);
+    const category = document.getElementById("budget-category").value;
+    const amount = parseFloat(document.getElementById("budget-amount").value);
 
-  // Handle transaction filters
-  document
-    .getElementById("transaction-type")
-    .addEventListener("change", updateTransactionList);
-  document
-    .getElementById("transaction-period")
-    .addEventListener("change", updateTransactionList);
+    if (!category) {
+      showNotification("Please select a category.", "error");
+      return;
+    }
 
-  // Handle chart tab switching
-  document.querySelectorAll(".chart-tab").forEach((tab) => {
-    tab.addEventListener("click", function () {
-      // Remove active class from all tabs
-      document
-        .querySelectorAll(".chart-tab")
-        .forEach((t) => t.classList.remove("active"));
+    state.budgets[category] = amount;
+    saveToLocalStorage();
 
-      // Add active class to clicked tab
-      this.classList.add("active");
+    elements.budgetForm.reset();
+    renderBudgets();
+    updateCharts();
+    showNotification("Budget set successfully!", "success");
+  }
 
-      // Hide all charts
-      document.getElementById("doughnut-chart").style.display = "none";
-      document.getElementById("bar-chart").style.display = "none";
+  // Handle financial goal form submission
+  function handleGoalSubmit(e) {
+    e.preventDefault();
 
-      // Show selected chart
-      const chartId = this.getAttribute("data-chart");
-      document.getElementById(chartId).style.display = "block";
+    const name = document.getElementById("goal-name").value;
+    const target = parseFloat(document.getElementById("goal-target").value);
+    const date = document.getElementById("goal-date").value;
+    const current =
+      parseFloat(document.getElementById("goal-current").value) || 0;
 
-      // Refresh charts
-      updateCharts();
+    const goal = {
+      id: generateId(),
+      name,
+      target,
+      date,
+      current,
+      timestamp: new Date().getTime(),
+    };
+
+    state.goals.push(goal);
+    saveToLocalStorage();
+
+    elements.goalForm.reset();
+    document.getElementById("goal-date").value = new Date(
+      new Date().setFullYear(new Date().getFullYear() + 1)
+    )
+      .toISOString()
+      .split("T")[0];
+
+    renderGoals();
+    showNotification("Financial goal added successfully!", "success");
+  }
+
+  // Handle savings calculator form submission
+  function handleSavingsCalc(e) {
+    e.preventDefault();
+
+    const monthlySavings = parseFloat(
+      document.getElementById("monthly-savings").value
+    );
+    const interestRate = parseFloat(
+      document.getElementById("interest-rate").value
+    );
+    const timePeriod = parseInt(document.getElementById("time-period").value);
+
+    // Calculate compound interest
+    const monthlyRate = interestRate / 100 / 12;
+    const numOfMonths = timePeriod * 12;
+
+    // Formula: P * ((1 + r)^n - 1) / r
+    // Where P is monthly deposit, r is monthly interest rate, n is number of months
+    let futureValue = 0;
+
+    if (monthlyRate === 0) {
+      futureValue = monthlySavings * numOfMonths;
+    } else {
+      futureValue =
+        monthlySavings *
+        ((Math.pow(1 + monthlyRate, numOfMonths) - 1) / monthlyRate);
+    }
+
+    const totalContributions = monthlySavings * numOfMonths;
+    const interestEarned = futureValue - totalContributions;
+
+    // Display results
+    const resultsHTML = `
+          <div class="results-panel scale-in">
+              <div class="results-title">Projected Savings after ${timePeriod} years</div>
+              <div class="results-value">₹${futureValue.toFixed(2)}</div>
+              <div class="results-breakdown">
+                  <div class="breakdown-item">
+                      <span>Total Contributions:</span>
+                      <span>₹${totalContributions.toFixed(2)}</span>
+                  </div>
+                  <div class="breakdown-item">
+                      <span>Interest Earned:</span>
+                      <span>₹${interestEarned.toFixed(2)}</span>
+                  </div>
+                  <div class="breakdown-item">
+                      <span>Annual Return Rate:</span>
+                      <span>${interestRate}%</span>
+                  </div>
+              </div>
+          </div>
+      `;
+
+    elements.savingsResults.innerHTML = resultsHTML;
+  }
+
+  // Tab switching
+  function switchTab(tab) {
+    // Get the tab group
+    const tabGroup = tab.parentElement;
+    const tabId = tab.getAttribute("data-tab");
+
+    // Remove active class from all tabs in the group
+    tabGroup.querySelectorAll(".tab").forEach((t) => {
+      t.classList.remove("active");
     });
+
+    // Add active class to clicked tab
+    tab.classList.add("active");
+
+    // Hide all related content
+    const tabContentGroup = tabGroup.nextElementSibling;
+    tabContentGroup.querySelectorAll("div").forEach((content) => {
+      content.classList.remove("active");
+    });
+
+    // Show the selected content
+    document.getElementById(tabId).classList.add("active");
+  }
+
+  // Chart tab switching
+function switchChartTab(tab) {
+  const chartId = tab.getAttribute('data-chart');
+
+  // Remove 'active' class from all chart tabs
+  document.querySelectorAll('.chart-tab').forEach(t => {
+    t.classList.remove('active');
   });
+
+  // Add 'active' class to clicked tab
+  tab.classList.add('active');
+
+  // Hide all chart canvases
+  elements.doughnutChart.style.display = 'none';
+  elements.barChart.style.display = 'none';
+  elements.monthlyComparisonChart.style.display = 'none';
+
+  // Show only the selected chart canvas
+  document.getElementById(chartId).style.display = 'block';
 }
 
-// Setup tab switching
-function setupTabs() {
-  document.querySelectorAll(".tab").forEach((tab) => {
-    tab.addEventListener("click", function () {
-      const tabId = this.getAttribute("data-tab");
+  // Toggle theme
+  function toggleTheme() {
+    state.theme = state.theme === "light" ? "dark" : "light";
+    applyTheme();
+    saveToLocalStorage();
+  }
 
-      // Remove active class from all tabs and contents
-      document
-        .querySelectorAll(".tab")
-        .forEach((t) => t.classList.remove("active"));
-      document
-        .querySelectorAll(".tabs-content > div")
-        .forEach((c) => c.classList.remove("active"));
+  // Apply theme based on current state
+  function applyTheme() {
+    const themeToggleBtn = elements.themeToggleBtn;
+    const icon = themeToggleBtn.querySelector("i");
+    const text = themeToggleBtn.querySelector("span");
 
-      // Add active class to selected tab and content
-      this.classList.add("active");
-      document.getElementById(tabId).classList.add("active");
+    document.documentElement.setAttribute("data-theme", state.theme);
+
+    if (state.theme === "dark") {
+      icon.className = "fas fa-sun";
+      text.textContent = "Light Mode";
+    } else {
+      icon.className = "fas fa-moon";
+      text.textContent = "Dark Mode";
+    }
+
+    // Update charts with new theme colors
+    updateCharts();
+  }
+
+  // Calculate financial statistics
+  function calculateStats() {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    // Filter transactions for current month
+    const currentMonthTransactions = state.transactions.filter((t) => {
+      const transactionDate = new Date(t.date);
+      return (
+        transactionDate.getMonth() === currentMonth &&
+        transactionDate.getFullYear() === currentYear
+      );
     });
-  });
 
-  // Setup toggle button for transaction type
-  document
-    .getElementById("toggle-transaction-type")
-    .addEventListener("click", function () {
-      const expenseTab = document.querySelector('.tab[data-tab="expense-tab"]');
-      const incomeTab = document.querySelector('.tab[data-tab="income-tab"]');
+    // Calculate totals
+    const totalIncome = state.transactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
 
-      if (expenseTab.classList.contains("active")) {
-        // Switch to income
-        expenseTab.classList.remove("active");
-        incomeTab.classList.add("active");
-        document.getElementById("expense-tab").classList.remove("active");
-        document.getElementById("income-tab").classList.add("active");
-        this.textContent = "Switch to Expense";
+    const totalExpense = state.transactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const currentBalance = totalIncome - totalExpense;
+
+    // Calculate savings rate
+    const savingsRate =
+      totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome) * 100 : 0;
+
+    // Calculate trends
+    calculateMonthlyComparisons();
+
+    const incomeTrend = calculateTrend(
+      state.comparisons.currentMonthIncome,
+      state.comparisons.previousMonthIncome
+    );
+    const expenseTrend = calculateTrend(
+      state.comparisons.currentMonthExpense,
+      state.comparisons.previousMonthExpense
+    );
+    const balanceTrend = calculateTrend(
+      state.comparisons.currentMonthIncome -
+        state.comparisons.currentMonthExpense,
+      state.comparisons.previousMonthIncome -
+        state.comparisons.previousMonthExpense
+    );
+
+    return {
+      totalIncome,
+      totalExpense,
+      currentBalance,
+      savingsRate,
+      incomeTrend,
+      expenseTrend,
+      balanceTrend,
+    };
+  }
+
+  // Calculate monthly comparisons
+  function calculateMonthlyComparisons() {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+    const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const previousMonthYear =
+      currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    // Current month transactions
+    const currentMonthTransactions = state.transactions.filter((t) => {
+      const transactionDate = new Date(t.date);
+      return (
+        transactionDate.getMonth() === currentMonth &&
+        transactionDate.getFullYear() === currentYear
+      );
+    });
+
+    // Previous month transactions
+    const previousMonthTransactions = state.transactions.filter((t) => {
+      const transactionDate = new Date(t.date);
+      return (
+        transactionDate.getMonth() === previousMonth &&
+        transactionDate.getFullYear() === previousMonthYear
+      );
+    });
+
+    // Calculate income and expenses for current month
+    state.comparisons.currentMonthIncome = currentMonthTransactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    state.comparisons.currentMonthExpense = currentMonthTransactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Calculate income and expenses for previous month
+    state.comparisons.previousMonthIncome = previousMonthTransactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    state.comparisons.previousMonthExpense = previousMonthTransactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+  }
+
+  // Calculate trend percentage
+  function calculateTrend(current, previous) {
+    if (previous === 0) {
+      return current > 0 ? 100 : 0;
+    }
+
+    return ((current - previous) / previous) * 100;
+  }
+
+  // Update financial summary display
+  function updateFinancialSummary() {
+    const stats = calculateStats();
+
+    // Update amounts
+    elements.totalIncome.textContent = `₹${stats.totalIncome.toFixed(2)}`;
+    elements.totalExpense.textContent = `₹${stats.totalExpense.toFixed(2)}`;
+    elements.currentBalance.textContent = `₹${stats.currentBalance.toFixed(2)}`;
+    elements.savingsRate.textContent = `${stats.savingsRate.toFixed(1)}%`;
+
+    // Update trends
+    updateTrendDisplay(elements.incomeTrend, stats.incomeTrend);
+    updateTrendDisplay(elements.expenseTrend, stats.expenseTrend);
+    updateTrendDisplay(elements.balanceTrend, stats.balanceTrend);
+
+    // Update savings tip
+    const savingsTip = document.getElementById("savings-tip");
+    if (stats.savingsRate >= 20) {
+      savingsTip.textContent = "Great job! You are saving well.";
+    } else if (stats.savingsRate >= 10) {
+      savingsTip.textContent = "Good start. Aim for 20% or more.";
+    } else if (stats.savingsRate > 0) {
+      savingsTip.textContent = "Try to increase your savings rate.";
+    } else {
+      savingsTip.textContent = "You are spending more than you earn.";
+    }
+  }
+
+  // Update trend display with icon and styling
+  function updateTrendDisplay(element, trendValue) {
+    const trendValueElement = element.querySelector(".trend-value");
+    const trendIconElement = element.querySelector("i");
+
+    trendValueElement.textContent = `${Math.abs(trendValue).toFixed(1)}%`;
+
+    if (trendValue > 0) {
+      element.classList.add("trend-up");
+      element.classList.remove("trend-down");
+      trendIconElement.className = "fas fa-arrow-up";
+    } else if (trendValue < 0) {
+      element.classList.add("trend-down");
+      element.classList.remove("trend-up");
+      trendIconElement.className = "fas fa-arrow-down";
+    } else {
+      element.classList.remove("trend-up", "trend-down");
+      trendIconElement.className = "fas fa-equals";
+    }
+  }
+
+  // Render transactions list
+  function renderTransactions() {
+    const filteredTransactions = getFilteredTransactions();
+
+    if (filteredTransactions.length === 0) {
+      elements.transactionList.innerHTML = `
+              <div class="entry-item">
+                  <div class="entry-details">
+                      <h4>No transactions found</h4>
+                      <p>Add transactions or adjust your filters</p>
+                  </div>
+              </div>
+          `;
+      return;
+    }
+
+    const transactionsHTML = filteredTransactions
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .map((transaction) => {
+        const formattedDate = new Date(transaction.date).toLocaleDateString(
+          "en-IN",
+          {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          }
+        );
+
+        return `
+                  <div class="entry-item fade-in" data-id="${transaction.id}">
+                      <div class="entry-details">
+                          <h4>${transaction.name}</h4>
+                          <p><span class="category-${
+                            transaction.category
+                          }">${getCategoryName(
+          transaction.category
+        )}</span> • ${formattedDate}</p>
+                      </div>
+                      <div class="entry-actions">
+                          <span class="entry-amount ${
+                            transaction.type === "income"
+                              ? "income-amount"
+                              : "expense-amount"
+                          }">
+                              ${
+                                transaction.type === "income" ? "+" : "-"
+                              } ₹${transaction.amount.toFixed(2)}
+                          </span>
+                          <button class="delete-btn" onclick="deleteTransaction('${
+                            transaction.id
+                          }')">
+                              <i class="fas fa-trash"></i>
+                          </button>
+                      </div>
+                  </div>
+              `;
+      })
+      .join("");
+
+    elements.transactionList.innerHTML = transactionsHTML;
+
+    // Add event listeners to delete buttons
+    document.querySelectorAll(".delete-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const id = this.parentElement.parentElement.getAttribute("data-id");
+        deleteTransaction(id);
+      });
+    });
+  }
+
+  // Filter transactions based on selected options
+  function getFilteredTransactions() {
+    const type = elements.transactionType.value;
+    const period = elements.transactionPeriod.value;
+    const search = elements.transactionSearch.value.toLowerCase();
+
+    let filtered = [...state.transactions];
+
+    // Filter by type
+    if (type !== "all") {
+      filtered = filtered.filter((t) => t.type === type);
+    }
+
+    // Filter by period
+    if (period !== "all") {
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth();
+      const currentWeek = getWeekNumber(currentDate);
+
+      filtered = filtered.filter((t) => {
+        const transactionDate = new Date(t.date);
+        const transactionYear = transactionDate.getFullYear();
+        const transactionMonth = transactionDate.getMonth();
+        const transactionWeek = getWeekNumber(transactionDate);
+
+        if (period === "month") {
+          return (
+            transactionMonth === currentMonth && transactionYear === currentYear
+          );
+        } else if (period === "week") {
+          return (
+            transactionWeek === currentWeek && transactionYear === currentYear
+          );
+        }
+        return true;
+      });
+    }
+
+    // Filter by search term
+    if (search) {
+      filtered = filtered.filter(
+        (t) =>
+          t.name.toLowerCase().includes(search) ||
+          getCategoryName(t.category).toLowerCase().includes(search)
+      );
+    }
+
+    return filtered;
+  }
+
+  // Filter transactions based on UI filters
+  function filterTransactions() {
+    renderTransactions();
+  }
+
+  // Render budgets
+  function renderBudgets() {
+    if (Object.keys(state.budgets).length === 0) {
+      elements.budgetList.innerHTML = `
+              <div class="budget-item">
+                  <p>No budgets set yet. Add your first budget to get started.</p>
+              </div>
+          `;
+      return;
+    }
+
+    const budgetsHTML = Object.entries(state.budgets)
+      .map(([category, amount]) => {
+        // Calculate spent amount for this category
+        const spent = getSpentAmountByCategory(category);
+        const percentage = amount > 0 ? (spent / amount) * 100 : 0;
+        const remaining = amount - spent;
+
+        // Determine progress bar color
+        let progressColor = "var(--primary-color)";
+        if (percentage >= 90) {
+          progressColor = "var(--expense-color)";
+        } else if (percentage >= 70) {
+          progressColor = "#f39c12";
+        }
+
+        return `
+                  <div class="budget-item fade-in">
+                      <div class="budget-info">
+                          <h4>${getCategoryName(category)}</h4>
+                          <p>Budget: ₹${amount.toFixed(2)}</p>
+                      </div>
+                      <div class="budget-progress">
+                          <div class="progress-bar">
+                              <div class="progress-fill" style="width: ${Math.min(
+                                percentage,
+                                100
+                              )}%; background-color: ${progressColor}"></div>
+                          </div>
+                          <div class="progress-text">
+                              ₹${spent.toFixed(2)} of ₹${amount.toFixed(
+          2
+        )} (${percentage.toFixed(1)}%)
+                          </div>
+                      </div>
+                      <div class="budget-actions">
+                          <button class="delete-btn" onclick="deleteBudget('${category}')">
+                              <i class="fas fa-trash"></i>
+                          </button>
+                      </div>
+                  </div>
+              `;
+      })
+      .join("");
+
+    elements.budgetList.innerHTML = budgetsHTML;
+
+    // Add event listeners to delete buttons
+    document.querySelectorAll(".budget-actions .delete-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const category =
+          this.parentElement.parentElement.querySelector("h4").textContent;
+        deleteBudget(getCategoryKey(category));
+      });
+    });
+  }
+
+  // Render financial goals
+  function renderGoals() {
+    if (state.goals.length === 0) {
+      elements.goalsList.innerHTML = `
+              <div class="goal-item">
+                  <p>No goals set yet. Add your first financial goal to get started.</p>
+              </div>
+          `;
+      return;
+    }
+
+    const goalsHTML = state.goals
+      .map((goal) => {
+        const progress = (goal.current / goal.target) * 100;
+        const remaining = goal.target - goal.current;
+        const formattedDate = new Date(goal.date).toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+
+        // Calculate time left
+        const today = new Date();
+        const targetDate = new Date(goal.date);
+        const daysLeft = Math.ceil(
+          (targetDate - today) / (1000 * 60 * 60 * 24)
+        );
+
+        // Calculate required monthly savings
+        const monthsLeft = Math.ceil(daysLeft / 30);
+        const requiredMonthlySavings =
+          monthsLeft > 0 ? remaining / monthsLeft : 0;
+
+        return `
+                  <div class="goal-item bounce-in" data-id="${goal.id}">
+                      <div class="goal-header">
+                          <span class="goal-title">${goal.name}</span>
+                          <span class="goal-date">Target: ${formattedDate}</span>
+                      </div>
+                      <div class="goal-progress-container">
+                          <div class="goal-progress-bar">
+                              <div class="goal-progress-fill" style="width: ${progress}%"></div>
+                          </div>
+                          <div class="goal-stats">
+                              <span>₹${goal.current.toFixed(
+                                2
+                              )} of ₹${goal.target.toFixed(2)}</span>
+                              <span>${progress.toFixed(1)}% completed</span>
+                          </div>
+                      </div>
+                      <div class="goal-stats">
+                          <span>Days left: ${daysLeft}</span>
+                          <span>Need to save: ₹${requiredMonthlySavings.toFixed(
+                            2
+                          )}/month</span>
+                      </div>
+                      <div class="goal-actions">
+                          <button class="goal-update-btn" onclick="updateGoalProgress('${
+                            goal.id
+                          }')">
+                              Update Progress
+                          </button>
+                          <button class="delete-btn" onclick="deleteGoal('${
+                            goal.id
+                          }')">
+                              <i class="fas fa-trash"></i>
+                          </button>
+                      </div>
+                  </div>
+              `;
+      })
+      .join("");
+
+    elements.goalsList.innerHTML = goalsHTML;
+
+    // Add event listeners
+    document.querySelectorAll(".goal-update-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const id = this.parentElement.parentElement.getAttribute("data-id");
+        updateGoalProgress(id);
+      });
+    });
+
+    document.querySelectorAll(".goal-actions .delete-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const id = this.parentElement.parentElement.getAttribute("data-id");
+        deleteGoal(id);
+      });
+    });
+  }
+
+  // Update charts based on current data
+  function updateCharts() {
+    const chartPeriod = elements.chartPeriod.value;
+    const filteredTransactions = filterTransactionsByPeriod(chartPeriod);
+
+    updateDoughnutChart(filteredTransactions);
+    updateBarChart(filteredTransactions);
+    updateMonthlyComparisonChart();
+  }
+
+  // Filter transactions by selected period
+  function filterTransactionsByPeriod(period) {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+    const currentWeek = getWeekNumber(currentDate);
+
+    return state.transactions.filter((t) => {
+      const transactionDate = new Date(t.date);
+      const transactionYear = transactionDate.getFullYear();
+      const transactionMonth = transactionDate.getMonth();
+      const transactionWeek = getWeekNumber(transactionDate);
+
+      if (period === "month") {
+        return (
+          transactionMonth === currentMonth && transactionYear === currentYear
+        );
+      } else if (period === "week") {
+        return (
+          transactionWeek === currentWeek && transactionYear === currentYear
+        );
+      }
+      return true;
+    });
+  }
+
+  // Helper function to get week number of year
+  function getWeekNumber(date) {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  }
+
+  // Update doughnut chart
+  function updateDoughnutChart(transactions) {
+    const expensesByCategory = {};
+    const themeColors = getThemeColors();
+
+    // Get expenses by category
+    transactions
+      .filter((t) => t.type === "expense")
+      .forEach((t) => {
+        if (expensesByCategory[t.category]) {
+          expensesByCategory[t.category] += t.amount;
+        } else {
+          expensesByCategory[t.category] = t.amount;
+        }
+      });
+
+    // Prepare data for chart
+    const labels = Object.keys(expensesByCategory).map(getCategoryName);
+    const data = Object.values(expensesByCategory);
+
+    // Define colors for categories
+    const categoryColors = {
+      food: "#FF6384",
+      transport: "#36A2EB",
+      utilities: "#FFCE56",
+      entertainment: "#4BC0C0",
+      shopping: "#9966FF",
+      other: "#FF9F40",
+    };
+
+    const colors = Object.keys(expensesByCategory).map(
+      (category) => categoryColors[category] || "#999999"
+    );
+
+    // Create or update chart
+    if (charts.doughnut) {
+      charts.doughnut.destroy();
+    }
+    charts.doughnut = new Chart(elements.doughnutChart, {
+      type: "doughnut",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            data: data,
+            backgroundColor: colors,
+            borderColor: themeColors.backgroundColor,
+            borderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "right",
+            labels: {
+              color: themeColors.textColor,
+              padding: 20,
+              font: {
+                size: 14,
+              },
+            },
+          },
+          title: {
+            display: true,
+            text: "Expense Distribution by Category",
+            color: themeColors.textColor,
+            font: {
+              size: 16,
+              weight: "bold",
+            },
+            padding: {
+              top: 10,
+              bottom: 30,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  // Update bar chart
+  function updateBarChart(transactions) {
+    const monthlyIncome = {};
+    const monthlyExpense = {};
+    const themeColors = getThemeColors();
+
+    // Group transactions by month
+    transactions.forEach((t) => {
+      const date = new Date(t.date);
+      const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+      const monthName = date.toLocaleDateString("en-IN", {
+        month: "short",
+        year: "numeric",
+      });
+
+      if (t.type === "income") {
+        if (monthlyIncome[monthKey]) {
+          monthlyIncome[monthKey].amount += t.amount;
+        } else {
+          monthlyIncome[monthKey] = { label: monthName, amount: t.amount };
+        }
       } else {
-        // Switch to expense
-        incomeTab.classList.remove("active");
-        expenseTab.classList.add("active");
-        document.getElementById("income-tab").classList.remove("active");
-        document.getElementById("expense-tab").classList.add("active");
-        this.textContent = "Switch to Income";
+        if (monthlyExpense[monthKey]) {
+          monthlyExpense[monthKey].amount += t.amount;
+        } else {
+          monthlyExpense[monthKey] = { label: monthName, amount: t.amount };
+        }
       }
     });
-}
 
-// Handle expense form submission
-function handleExpenseSubmit(e) {
-  e.preventDefault();
+    // Prepare data for chart
+    const months = new Set();
+    for (const key in monthlyIncome) months.add(key);
+    for (const key in monthlyExpense) months.add(key);
 
-  const date = document.getElementById("expense-date").value;
-
-  // Validate date
-  if (!validateDate(date)) {
-    showNotification("Date must be between 01-01-2023 and today!", "error");
-    return; // Stop form submission
-  }
-
-  // Get form values
-  const name = document.getElementById("expense-name").value;
-  const amount = parseFloat(document.getElementById("expense-amount").value);
-  const category = document.getElementById("expense-category").value;
-
-  // Create new expense object
-  const expense = {
-    id: Date.now(),
-    name,
-    amount,
-    category,
-    date,
-    timestamp: new Date().toISOString(),
-  };
-
-  // Add to expenses array
-  transactions.expenses.push(expense);
-
-  // Save data
-  saveData();
-
-  // Reset form
-  this.reset();
-
-  // Set today's date again
-  setDefaultDates();
-
-  // Show success notification
-  showNotification("Expense added successfully!");
-
-  // Update UI
-  updateUI();
-}
-
-// Handle income form submission
-function handleIncomeSubmit(e) {
-  e.preventDefault();
-
-  const date = document.getElementById("income-date").value;
-
-  // Validate date
-  if (!validateDate(date)) {
-    showNotification("Date must be between 01-01-2023 and today!", "error");
-    return;
-  }
-
-  // Get form values
-  const name = document.getElementById("income-name").value;
-  const amount = parseFloat(document.getElementById("income-amount").value);
-  const category = document.getElementById("income-category").value;
-
-  // Create new income object
-  const income = {
-    id: Date.now(),
-    name,
-    amount,
-    category,
-    date,
-    timestamp: new Date().toISOString(),
-  };
-
-  // Add to incomes array
-  transactions.incomes.push(income);
-
-  // Save data
-  saveData();
-
-  // Reset form
-  this.reset();
-
-  // Set today's date again
-  setDefaultDates();
-
-  // Show success notification
-  showNotification("Income added successfully!");
-
-  // Update UI
-  updateUI();
-}
-
-// Handle budget form submission
-function handleBudgetSubmit(e) {
-  e.preventDefault();
-
-  // Get form values
-  const category = document.getElementById("budget-category").value;
-  const amount = parseFloat(document.getElementById("budget-amount").value);
-
-  if (!category) {
-    showNotification("Please select a category", "error");
-    return;
-  }
-
-  // Set budget for category
-  budgets[category] = amount;
-
-  // Save data
-  saveData();
-
-  // Reset form
-  this.reset();
-
-  // Show success notification
-  showNotification("Budget set successfully!");
-
-  // Update UI
-  updateBudgetList();
-}
-
-// Update all UI elements
-function updateUI() {
-  updateTotalAmounts();
-  updateTransactionList();
-  updateCharts();
-  updateBudgetList();
-}
-
-// Update total amounts in summary cards
-function updateTotalAmounts() {
-  // Calculate total income
-  const totalIncome = transactions.incomes.reduce(
-    (sum, income) => sum + income.amount,
-    0
-  );
-  document.getElementById("total-income").textContent = `₹${totalIncome.toFixed(
-    2
-  )}`;
-
-  // Calculate total expense
-  const totalExpense = transactions.expenses.reduce(
-    (sum, expense) => sum + expense.amount,
-    0
-  );
-  document.getElementById(
-    "total-expense"
-  ).textContent = `₹${totalExpense.toFixed(2)}`;
-
-  // Calculate current balance
-  const balance = totalIncome - totalExpense;
-  const balanceElement = document.getElementById("current-balance");
-  balanceElement.textContent = `₹${balance.toFixed(2)}`;
-
-  // Set color based on balance
-  if (balance < 0) {
-    balanceElement.style.color = "var(--expense-color)";
-  } else {
-    balanceElement.style.color = "var(--income-color)";
-  }
-}
-
-// Update transaction list based on filters
-function updateTransactionList() {
-  const transactionList = document.getElementById("transaction-list");
-
-  // Get filter values
-  const typeFilter = document.getElementById("transaction-type").value;
-  const periodFilter = document.getElementById("transaction-period").value;
-
-  // Apply filters to get transactions
-  let filteredTransactions = [];
-
-  if (typeFilter === "all" || typeFilter === "expense") {
-    filteredTransactions = filteredTransactions.concat(
-      transactions.expenses
-        .filter((expense) => {
-          return matchesDateFilter(expense.date, periodFilter);
-        })
-        .map((expense) => ({
-          ...expense,
-          type: "expense",
-        }))
+    const sortedMonths = Array.from(months).sort();
+    const labels = sortedMonths.map(
+      (key) => monthlyIncome[key]?.label || monthlyExpense[key]?.label
     );
-  }
 
-  if (typeFilter === "all" || typeFilter === "income") {
-    filteredTransactions = filteredTransactions.concat(
-      transactions.incomes
-        .filter((income) => {
-          return matchesDateFilter(income.date, periodFilter);
-        })
-        .map((income) => ({
-          ...income,
-          type: "income",
-        }))
+    const incomeData = sortedMonths.map(
+      (key) => monthlyIncome[key]?.amount || 0
     );
-  }
+    const expenseData = sortedMonths.map(
+      (key) => monthlyExpense[key]?.amount || 0
+    );
 
-  // Sort by date (newest first)
-  filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-  // Clear current content
-  transactionList.innerHTML = "";
-
-  if (filteredTransactions.length === 0) {
-    transactionList.innerHTML = `
-          <div class="entry-item">
-              <div class="entry-details">
-                  <h4>No transactions found</h4>
-                  <p>Try adjusting your filters or add new transactions</p>
-              </div>
-          </div>
-      `;
-    return;
-  }
-
-  // Add each transaction to the list
-  filteredTransactions.forEach((transaction) => {
-    const formattedDate = new Date(transaction.date).toLocaleDateString();
-    const formattedAmount = transaction.amount.toFixed(2);
-
-    const transactionItem = document.createElement("div");
-    transactionItem.className = "entry-item";
-
-    let categoryClass, categoryName;
-
-    if (transaction.type === "expense") {
-      categoryClass = `category-${transaction.category}`;
-      categoryName = getCategoryName(transaction.category);
-    } else {
-      categoryClass = `category-${transaction.category}`;
-      categoryName = getIncomeCategoryName(transaction.category);
+    // Create or update chart
+    if (charts.bar) {
+      charts.bar.destroy();
     }
-
-    transactionItem.innerHTML = `
-          <div class="entry-details">
-              <h4>${transaction.name}</h4>
-              <p class="${categoryClass}">${categoryName} · ${formattedDate}</p>
-          </div>
-          <div class="entry-actions">
-              <span class="entry-amount ${
-                transaction.type === "expense"
-                  ? "expense-amount"
-                  : "income-amount"
-              }">
-                  ${
-                    transaction.type === "expense" ? "-" : "+"
-                  }₹${formattedAmount}
-              </span>
-              <button class="edit-btn" data-id="${transaction.id}" data-type="${
-      transaction.type
-    }">Edit</button>
-              <button class="delete-btn" data-id="${
-                transaction.id
-              }" data-type="${transaction.type}">Delete</button>
-          </div>
-      `;
-
-    transactionList.appendChild(transactionItem);
-  });
-
-  // Add event listeners to delete buttons
-  document.querySelectorAll(".delete-btn").forEach((button) => {
-    button.addEventListener("click", function () {
-      const id = parseInt(this.getAttribute("data-id"));
-      const type = this.getAttribute("data-type");
-      deleteTransaction(id, type);
-    });
-  });
-
-  // Add event listeners to edit buttons
-  document.querySelectorAll(".edit-btn").forEach((button) => {
-    button.addEventListener("click", function () {
-      const id = parseInt(this.getAttribute("data-id"));
-      const type = this.getAttribute("data-type");
-      handleEditTransaction(id, type);
-    });
-  });
-}
-
-// Check if a date matches the selected date filter
-function matchesDateFilter(dateString, filter) {
-  if (filter === "all") return true;
-
-  const date = new Date(dateString);
-  const today = new Date();
-
-  if (filter === "month") {
-    return (
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
-  }
-
-  if (filter === "week") {
-    // Get start of week (Sunday)
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    return date >= startOfWeek;
-  }
-
-  return true;
-}
-
-// Delete a transaction
-function deleteTransaction(id, type) {
-  // Confirm deletion
-  if (confirm("Are you sure you want to delete this transaction?")) {
-    if (type === "expense") {
-      transactions.expenses = transactions.expenses.filter(
-        (expense) => expense.id !== id
-      );
-    } else {
-      transactions.incomes = transactions.incomes.filter(
-        (income) => income.id !== id
-      );
-    }
-
-    // Save data
-    saveData();
-
-    // Show notification
-    showNotification("Transaction deleted successfully!");
-
-    // Update UI
-    updateUI();
-  }
-}
-
-// Fixed handleEditTransaction function
-function handleEditTransaction(id, type) {
-  // Determine the correct array based on type
-  const typeList = type === "expense" ? "expenses" : "incomes";
-  const item = transactions[typeList].find((entry) => entry.id === id);
-
-  if (!item) {
-    console.error(`Transaction with ID ${id} not found in ${typeList}`);
-    return;
-  }
-
-  // Fill modal form
-  document.getElementById("edit-id").value = id;
-  document.getElementById("edit-type").value = type;
-  document.getElementById("edit-name").value = item.name;
-  document.getElementById("edit-amount").value = item.amount;
-  document.getElementById("edit-category").value = item.category;
-  document.getElementById("edit-date").value = item.date;
-
-  // Show modal
-  document.getElementById("edit-modal").classList.remove("hidden");
-}
-
-// Update charts based on current data and filters
-function updateCharts() {
-  const periodFilter = document.getElementById("chart-period").value;
-
-  const activeChart = document
-    .querySelector(".chart-tab.active")
-    .getAttribute("data-chart");
-
-  // Update doughnut chart (category breakdown)
-  if (activeChart === "doughnut-chart") {
-    updateDoughnutChart(periodFilter);
-    // Update bar chart (income vs expenses)
-  } else if (activeChart === "bar-chart") {
-    updateBarChart(periodFilter);
-  }
-}
-
-// Update doughnut chart using Chart.js
-function updateDoughnutChart(periodFilter) {
-  const ctx = document.getElementById("doughnut-chart").getContext("2d");
-
-  // Get filtered expenses
-  const filteredExpenses = transactions.expenses.filter((expense) => {
-    return matchesDateFilter(expense.date, periodFilter);
-  });
-
-  // Calculate totals by category
-  const categoryTotals = {};
-  const categories = [
-    "food",
-    "transport",
-    "utilities",
-    "entertainment",
-    "shopping",
-    "other",
-  ];
-
-  categories.forEach((cat) => {
-    categoryTotals[cat] = 0;
-  });
-
-  filteredExpenses.forEach((expense) => {
-    categoryTotals[expense.category] += expense.amount;
-  });
-
-  // Only include categories with values > 0
-  const activeCategories = categories.filter((cat) => categoryTotals[cat] > 0);
-
-  const data = {
-    labels: activeCategories.map(getCategoryName),
-    datasets: [
-      {
-        data: activeCategories.map((cat) => categoryTotals[cat]),
-        backgroundColor: [
-          "#e74c3c", // Food
-          "#3498db", // Transport
-          "#2ecc71", // Utilities
-          "#f39c12", // Entertainment
-          "#9b59b6", // Shopping
-          "#34495e", // Other
-        ],
-        borderWidth: 1,
-        borderColor: "#fff",
-      },
-    ],
-  };
-
-  // Destroy previous chart if it exists
-  if (charts.doughnut) {
-    charts.doughnut.destroy();
-  }
-
-  // Create new chart with Chart.js
-  charts.doughnut = new Chart(ctx, {
-    type: "doughnut",
-    data: data,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: "bottom",
-          labels: {
-            padding: 20,
-            boxWidth: 12,
-          },
+      charts.bar = new Chart(elements.barChart, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Income",
+              data: incomeData,
+              backgroundColor: "#66BB6A",
+              borderColor: "#43A047",
+              borderWidth: 1,
+            },
+            {
+              label: "Expenses",
+              data: expenseData,
+              backgroundColor: "#EF5350",
+              borderColor: "#E53935",
+              borderWidth: 1,
+            },
+          ],
         },
-        title: {
-          display: true,
-          text: "Expense Breakdown by Category",
-          font: {
-            size: 16,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "top",
+              labels: {
+                color: themeColors.textColor,
+                padding: 20,
+                font: {
+                  size: 14,
+                },
+              },
+            },
+            title: {
+              display: true,
+              text: "Monthly Income vs Expenses",
+              color: themeColors.textColor,
+              font: {
+                size: 16,
+                weight: "bold",
+              },
+              padding: {
+                top: 10,
+                bottom: 30,
+              },
+            },
           },
-          padding: {
-            bottom: 15,
-          },
-        },
-        tooltip: {
-          callbacks: {
-            label: function (context) {
-              const label = context.label || "";
-              const value = context.parsed || 0;
-              const total = context.dataset.data.reduce((a, b) => a + b, 0);
-              const percentage = Math.round((value / total) * 100);
-              return `${label}: ₹${value.toFixed(2)} (${percentage}%)`;
+          scales: {
+            x: {
+              ticks: {
+                color: themeColors.textColor,
+              },
+              grid: {
+                color: themeColors.gridColor,
+              },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: themeColors.textColor,
+                callback: function (value) {
+                  return "₹" + value;
+                },
+              },
+              grid: {
+                color: themeColors.gridColor,
+              },
             },
           },
         },
-      },
-    },
-  });
-}
+      });
+  }
 
-// Update bar chart using Chart.js
-function updateBarChart(periodFilter) {
-  const ctx = document.getElementById("bar-chart").getContext("2d");
+  // Update monthly comparison chart
+  function updateMonthlyComparisonChart() {
+    const themeColors = getThemeColors();
 
-  // Get filtered transactions
-  const filteredExpenses = transactions.expenses.filter((expense) => {
-    return matchesDateFilter(expense.date, periodFilter);
-  });
+    // Get last 6 months data
+    const months = [];
+    const incomeData = [];
+    const expenseData = [];
+    const balanceData = [];
 
-  const filteredIncomes = transactions.incomes.filter((income) => {
-    return matchesDateFilter(income.date, periodFilter);
-  });
-
-  // Get labels based on period
-  let labels = [];
-  let expenseData = [];
-  let incomeData = [];
-
-  if (periodFilter === "week") {
-    // Day of week labels
-    const dayNames = [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ];
-    labels = dayNames;
-
-    // Initialize data arrays
-    expenseData = Array(7).fill(0);
-    incomeData = Array(7).fill(0);
-
-    // Fill data arrays
-    filteredExpenses.forEach((expense) => {
-      const dayIndex = new Date(expense.date).getDay();
-      expenseData[dayIndex] += expense.amount;
-    });
-
-    filteredIncomes.forEach((income) => {
-      const dayIndex = new Date(income.date).getDay();
-      incomeData[dayIndex] += income.amount;
-    });
-  } else if (periodFilter === "month") {
-    // Get days in month
     const today = new Date();
-    const daysInMonth = new Date(
-      today.getFullYear(),
-      today.getMonth() + 1,
-      0
-    ).getDate();
 
-    // Create labels for each day
-    for (let i = 1; i <= daysInMonth; i++) {
-      labels.push(i.toString());
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthKey = `${month.getFullYear()}-${month.getMonth() + 1}`;
+      const monthName = month.toLocaleDateString("en-IN", { month: "short" });
+
+      months.push(monthName);
+
+      // Filter transactions for this month
+      const monthTransactions = state.transactions.filter((t) => {
+        const tDate = new Date(t.date);
+        return (
+          tDate.getMonth() === month.getMonth() &&
+          tDate.getFullYear() === month.getFullYear()
+        );
+      });
+
+      // Calculate totals
+      const monthIncome = monthTransactions
+        .filter((t) => t.type === "income")
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const monthExpense = monthTransactions
+        .filter((t) => t.type === "expense")
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      const monthBalance = monthIncome - monthExpense;
+
+      incomeData.push(monthIncome);
+      expenseData.push(monthExpense);
+      balanceData.push(monthBalance);
     }
 
-    // Initialize data arrays
-    expenseData = Array(daysInMonth).fill(0);
-    incomeData = Array(daysInMonth).fill(0);
-
-    // Fill data arrays
-    filteredExpenses.forEach((expense) => {
-      const day = new Date(expense.date).getDate();
-      expenseData[day - 1] += expense.amount;
-    });
-
-    filteredIncomes.forEach((income) => {
-      const day = new Date(income.date).getDate();
-      incomeData[day - 1] += income.amount;
-    });
-  } else {
-    // All time - group by month
-    const monthNames = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    labels = monthNames;
-
-    // Initialize data arrays
-    expenseData = Array(12).fill(0);
-    incomeData = Array(12).fill(0);
-
-    // Fill data arrays
-    filteredExpenses.forEach((expense) => {
-      const monthIndex = new Date(expense.date).getMonth();
-      expenseData[monthIndex] += expense.amount;
-    });
-
-    filteredIncomes.forEach((income) => {
-      const monthIndex = new Date(income.date).getMonth();
-      incomeData[monthIndex] += income.amount;
-    });
-  }
-
-  const data = {
-    labels: labels,
-    datasets: [
-      {
-        label: "Income",
-        data: incomeData,
-        backgroundColor: "rgba(46, 204, 113, 0.7)",
-        borderColor: "rgba(46, 204, 113, 1)",
-        borderWidth: 1,
-      },
-      {
-        label: "Expenses",
-        data: expenseData,
-        backgroundColor: "rgba(231, 76, 60, 0.7)",
-        borderColor: "rgba(231, 76, 60, 1)",
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  // Destroy previous chart if it exists
-  if (charts.bar) {
-    charts.bar.destroy();
-  }
-
-  // Create new chart with Chart.js
-  charts.bar = new Chart(ctx, {
-    type: "bar",
-    data: data,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            callback: function (value) {
-              return "₹" + value;
+    // Create or update chart
+    if (charts.monthlyComparison) {
+      charts.monthlyComparison.destroy();
+    }
+      charts.monthlyComparison = new Chart(elements.monthlyComparisonChart, {
+        type: "line",
+        data: {
+          labels: months,
+          datasets: [
+            {
+              label: "Income",
+              data: incomeData,
+              borderColor: "#66BB6A",
+              backgroundColor: "rgba(102, 187, 106, 0.2)",
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true,
+            },
+            {
+              label: "Expenses",
+              data: expenseData,
+              borderColor: "#EF5350",
+              backgroundColor: "rgba(239, 83, 80, 0.2)",
+              borderWidth: 2,
+              tension: 0.4,
+              fill: true,
+            },
+            {
+              label: "Balance",
+              data: balanceData,
+              borderColor: "#42A5F5",
+              backgroundColor: "rgba(66, 165, 245, 0.2)",
+              borderWidth: 2,
+              borderDash: [5, 5],
+              tension: 0.4,
+              fill: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "top",
+              labels: {
+                color: themeColors.textColor,
+                padding: 20,
+                font: {
+                  size: 14,
+                },
+              },
+            },
+            title: {
+              display: true,
+              text: "6-Month Financial Trend",
+              color: themeColors.textColor,
+              font: {
+                size: 16,
+                weight: "bold",
+              },
+              padding: {
+                top: 10,
+                bottom: 30,
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: themeColors.textColor,
+              },
+              grid: {
+                color: themeColors.gridColor,
+              },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: themeColors.textColor,
+                callback: function (value) {
+                  return "₹" + value;
+                },
+              },
+              grid: {
+                color: themeColors.gridColor,
+              },
             },
           },
         },
-      },
-      plugins: {
-        title: {
-          display: true,
-          text: "Income vs Expenses",
-          font: {
-            size: 16,
-          },
-          padding: {
-            bottom: 15,
-          },
-        },
-        tooltip: {
-          callbacks: {
-            label: function (context) {
-              let label = context.dataset.label || "";
-              if (label) {
-                label += ": ";
-              }
-              if (context.parsed.y !== null) {
-                label += "₹" + context.parsed.y.toFixed(2);
-              }
-              return label;
-            },
-          },
-        },
-      },
-    },
-  });
-}
-
-// Update budget list
-function updateBudgetList() {
-  const budgetList = document.getElementById("budget-list");
-
-  // Clear current content
-  budgetList.innerHTML = "";
-
-  if (Object.keys(budgets).length === 0) {
-    budgetList.innerHTML = `
-          <div class="budget-item">
-              <p>No budgets set yet. Add your first budget to get started.</p>
-          </div>
-      `;
-    return;
+      });
   }
 
-  // Add each budget to the list
-  for (const [category, amount] of Object.entries(budgets)) {
-    // Calculate current spending for this category this month
-    const today = new Date();
-    const categoryExpenses = transactions.expenses.filter((expense) => {
-      const expenseDate = new Date(expense.date);
-      return (
-        expense.category === category &&
-        expenseDate.getMonth() === today.getMonth() &&
-        expenseDate.getFullYear() === today.getFullYear()
-      );
-    });
+  // Get theme-specific colors for charts
+  function getThemeColors() {
+    const isDark = state.theme === "dark";
 
-    const spent = categoryExpenses.reduce(
-      (sum, expense) => sum + expense.amount,
-      0
+    return {
+      backgroundColor: isDark ? "#262c38" : "#ffffff",
+      textColor: isDark ? "#e0e0e0" : "#333333",
+      gridColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)",
+    };
+  }
+
+  // Calculate spent amount by category
+  function getSpentAmountByCategory(category) {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+
+    return state.transactions
+      .filter((t) => {
+        const transactionDate = new Date(t.date);
+        return (
+          t.type === "expense" &&
+          t.category === category &&
+          transactionDate.getMonth() === currentMonth &&
+          transactionDate.getFullYear() === currentYear
+        );
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+  }
+
+  // Get category name from category key
+  function getCategoryName(category) {
+    const categories = {
+      // Expense categories
+      food: "Food & Dining",
+      transport: "Transportation",
+      utilities: "Utilities & Bills",
+      entertainment: "Entertainment",
+      shopping: "Shopping",
+      other: "Other Expenses",
+
+      // Income categories
+      salary: "Salary & Wages",
+      investment: "Investments",
+      gifts: "Gifts & Rewards",
+      other: "Other Income",
+    };
+
+    return categories[category] || category;
+  }
+
+  // Get category key from category name
+  function getCategoryKey(name) {
+    const categoryMap = {
+      "Food & Dining": "food",
+      Transportation: "transport",
+      "Utilities & Bills": "utilities",
+      Entertainment: "entertainment",
+      Shopping: "shopping",
+      "Other Expenses": "other",
+      "Salary & Wages": "salary",
+      Investments: "investment",
+      "Gifts & Rewards": "gifts",
+      "Other Income": "other",
+    };
+
+    return categoryMap[name] || name;
+  }
+
+  // Delete transaction
+  function deleteTransaction(id) {
+    const index = state.transactions.findIndex((t) => t.id === id);
+
+    if (index !== -1) {
+      state.transactions.splice(index, 1);
+      saveToLocalStorage();
+      renderData();
+      showNotification("Transaction deleted successfully!", "success");
+    }
+  }
+
+  // Delete budget
+  function deleteBudget(category) {
+    if (state.budgets[category]) {
+      delete state.budgets[category];
+      saveToLocalStorage();
+      renderBudgets();
+      updateCharts();
+      showNotification("Budget deleted successfully!", "success");
+    }
+  }
+
+  // Delete goal
+  function deleteGoal(id) {
+    const index = state.goals.findIndex((g) => g.id === id);
+
+    if (index !== -1) {
+      state.goals.splice(index, 1);
+      saveToLocalStorage();
+      renderGoals();
+      showNotification("Goal deleted successfully!", "success");
+    }
+  }
+
+  // Update goal progress
+  function updateGoalProgress(id) {
+    const goal = state.goals.find((g) => g.id === id);
+
+    if (!goal) return;
+
+    const newAmount = prompt(
+      `Update current savings for "${goal.name}"`,
+      goal.current
     );
-    const percentage = amount > 0 ? (spent / amount) * 100 : 0;
 
-    // Determine status class
-    let statusClass = "success";
-    if (percentage >= 90) {
-      statusClass = "danger";
-    } else if (percentage >= 75) {
-      statusClass = "warning";
+    if (newAmount !== null && !isNaN(parseFloat(newAmount))) {
+      goal.current = parseFloat(newAmount);
+      saveToLocalStorage();
+      renderGoals();
+      showNotification("Goal progress updated!", "success");
     }
-
-    const budgetItem = document.createElement("div");
-    budgetItem.className = "budget-item";
-
-    budgetItem.innerHTML = `
-          <div class="budget-info">
-              <h4 class="category-${category}">${getCategoryName(category)}</h4>
-              <p>Monthly Budget: ₹${amount.toFixed(2)}</p>
-          </div>
-          <div class="budget-progress">
-              <div class="progress-bar">
-                  <div class="progress-fill ${statusClass}" style="width: ${Math.min(
-      percentage,
-      100
-    )}%"></div>
-              </div>
-              <div class="progress-text">
-                  ₹${spent.toFixed(2)} of ₹${amount.toFixed(
-      2
-    )} (${percentage.toFixed(1)}%)
-              </div>
-          </div>
-          <div class="budget-actions">
-              <button class="edit-btn" data-category="${category}">Edit</button>
-              <button class="delete-btn" data-category="${category}">Delete</button>
-          </div>
-      `;
-
-    budgetList.appendChild(budgetItem);
   }
 
-  // Add event listeners to delete buttons
-  document.querySelectorAll(".budget-actions .delete-btn").forEach((button) => {
-    button.addEventListener("click", function () {
-      const category = this.getAttribute("data-category");
-      deleteBudget(category);
-    });
-  });
-
-  document.querySelectorAll(".budget-actions .edit-btn").forEach((button) => {
-    button.addEventListener("click", function () {
-      const category = this.getAttribute("data-category");
-      const amount = budgets[category];
-
-      document.getElementById("edit-budget-category").value = category;
-      document.getElementById("edit-budget-display").value =
-        getCategoryName(category);
-      document.getElementById("edit-budget-amount").value = amount;
-
-      document.getElementById("budget-edit-modal").classList.remove("hidden");
-    });
-  });
-}
-
-// Delete a budget
-function deleteBudget(category) {
-  // Confirm deletion
-  if (confirm("Are you sure you want to delete this budget?")) {
-    delete budgets[category];
-
-    // Save data
-    saveData();
-
-    // Show notification
-    showNotification("Budget deleted successfully!");
-
-    // Update UI
-    updateBudgetList();
+  // Generate unique ID
+  function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
   }
-}
-
-// Helper function to get category name
-function getCategoryName(category) {
-  const categoryNames = {
-    food: "Food & Dining",
-    transport: "Transportation",
-    utilities: "Utilities & Bills",
-    entertainment: "Entertainment",
-    shopping: "Shopping",
-    other: "Other",
-  };
-
-  return categoryNames[category] || category;
-}
-
-// Helper function to get income category name
-function getIncomeCategoryName(category) {
-  const categoryNames = {
-    salary: "Salary & Wages",
-    investment: "Investments",
-    gifts: "Gifts & Rewards",
-    other: "Other",
-  };
-
-  return categoryNames[category] || category;
-}
-
-// Show notification
-function showNotification(message, type = "success") {
-  // Create notification element
-  const notification = document.createElement("div");
-  notification.className = `notification ${type}`;
-  notification.textContent = message;
-
-  // Add styles
-  notification.style.position = "fixed";
-  notification.style.bottom = "20px";
-  notification.style.right = "20px";
-  notification.style.padding = "12px 20px";
-  notification.style.backgroundColor =
-    type === "success" ? "var(--income-color)" : "var(--expense-color)";
-  notification.style.color = "white";
-  notification.style.borderRadius = "5px";
-  notification.style.boxShadow = "0 2px 10px rgba(0, 0, 0, 0.2)";
-  notification.style.zIndex = "1000";
-  notification.style.opacity = "0";
-  notification.style.transform = "translateY(20px)";
-  notification.style.transition = "all 0.3s ease";
-
-  // Add to DOM
-  document.body.appendChild(notification);
-
-  // Animate in
-  setTimeout(() => {
-    notification.style.opacity = "1";
-    notification.style.transform = "translateY(0)";
-  }, 10);
-
-  // Auto remove after delay
-  setTimeout(() => {
-    notification.style.opacity = "0";
-    notification.style.transform = "translateY(20px)";
-
-    // Remove from DOM after animation
-    setTimeout(() => {
-      document.body.removeChild(notification);
-    }, 300);
-  }, 3000);
-}
-
-/*
- * Validates if a date is between 01-01-2023 and today.
- * @param {string} dateString - Date in YYYY-MM-DD format.
- * @returns {boolean} - True if valid, false otherwise.
- */
-function validateDate(dateString) {
-  const date = new Date(dateString);
-  const minDate = new Date("2023-01-01");
-  const today = new Date();
-  today.setHours(23, 59, 59, 999); // Include entire day
-
-  return date >= minDate && date <= today;
-}
-
-// Export/Import functionality
-function addExportImportFeatures() {
-  // Add export & import button to the header
-  const exportButton = document.getElementById("export-data");
-  const importButton = document.getElementById("import-data");
-
-  // Add hidden file input for import
-  const fileInput = document.createElement("input");
-  fileInput.type = "file";
-  fileInput.id = "import-file";
-  fileInput.style.display = "none";
-  fileInput.accept = ".json";
-
-  document.body.appendChild(fileInput);
-
-  // Add event listeners
-  exportButton.addEventListener("click", exportData);
-  importButton.addEventListener("click", () => fileInput.click());
-  fileInput.addEventListener("change", importData);
-}
-
-// Export data
-function exportData() {
-  // Create data object
-  const data = {
-    expenses: transactions.expenses,
-    incomes: transactions.incomes,
-    budgets: budgets,
-  };
-
-  // Convert to JSON
-  const jsonData = JSON.stringify(data, null, 2);
-
-  // Create download link
-  const blob = new Blob([jsonData], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `finance_data_${new Date().toISOString().slice(0, 10)}.json`;
-
-  // Trigger download
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
 
   // Show notification
-  showNotification("Data exported successfully!");
-}
+  function showNotification(message, type = "info") {
+    // Create notification element
+    const notification = document.createElement("div");
+    notification.className = `notification ${type} slide-in`;
 
-// Import data
-function importData(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-
-  reader.onload = function (event) {
-    try {
-      const data = JSON.parse(event.target.result);
-
-      // Validate data structure
-      if (data.expenses && data.incomes && data.budgets) {
-        // Import data
-        transactions.expenses = data.expenses;
-        transactions.incomes = data.incomes;
-        budgets = data.budgets;
-
-        // Save to local storage
-        saveData();
-
-        // Update UI
-        updateUI();
-
-        // Show notification
-        showNotification("Data imported successfully!");
-      } else {
-        throw new Error("Invalid data format");
-      }
-    } catch (error) {
-      showNotification("Error importing data: " + error.message, "error");
+    // Create icon based on type
+    const icon = document.createElement("i");
+    if (type === "success") {
+      icon.className = "fas fa-check-circle";
+    } else if (type === "error") {
+      icon.className = "fas fa-exclamation-triangle";
+    } else {
+      icon.className = "fas fa-info-circle";
     }
 
-    // Reset file input
-    e.target.value = "";
-  };
+    // Create message
+    const text = document.createElement("span");
+    text.textContent = message;
 
-  reader.readAsText(file);
-}
+    // Append elements
+    notification.appendChild(icon);
+    notification.appendChild(text);
+
+    // Add to DOM
+    document.body.appendChild(notification);
+
+    // Remove after animation
+    setTimeout(() => {
+      notification.classList.add("slide-out");
+      setTimeout(() => {
+        notification.remove();
+      }, 300);
+    }, 3000);
+  }
+
+  // Export data to JSON file
+  function exportData() {
+    const data = {
+      transactions: state.transactions,
+      budgets: state.budgets,
+      goals: state.goals,
+    };
+
+    const dataStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = url;
+    a.download = `finance_data_${new Date().toISOString().split("T")[0]}.json`;
+
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      showNotification("Data exported successfully!", "success");
+    }, 100);
+  }
+
+  // Import data from JSON file
+  function importData(e) {
+    const file = e.target.files[0];
+
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      try {
+        const data = JSON.parse(e.target.result);
+
+        if (data.transactions) state.transactions = data.transactions;
+        if (data.budgets) state.budgets = data.budgets;
+        if (data.goals) state.goals = data.goals;
+
+        saveToLocalStorage();
+        renderData();
+
+        showNotification("Data imported successfully!", "success");
+      } catch (error) {
+        console.error("Error importing data:", error);
+        showNotification("Error importing data. Invalid file format.", "error");
+      }
+    };
+
+    reader.readAsText(file);
+    e.target.value = ""; // Reset file input
+  }
+
+  // Generate PDF report
+  function generateReport() {
+    const stats = calculateStats();
+
+    alert(`Financial Report
+    
+Total Income: ₹${stats.totalIncome.toFixed(2)}
+Total Expenses: ₹${stats.totalExpense.toFixed(2)}
+Current Balance: ₹${stats.currentBalance.toFixed(2)}
+Savings Rate: ${stats.savingsRate.toFixed(1)}%
+
+This is a simplified version. In a full implementation, a proper PDF would be generated.`);
+
+    showNotification("Report generated!", "success");
+  }
+
+  // Add sample data for demonstration
+  function addSampleData() {
+    if (
+      confirm(
+        "This will add sample transactions, budgets, and goals for demonstration. Continue?"
+      )
+    ) {
+      // Sample transactions
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+
+      // Clear existing data
+      state.transactions = [];
+      state.budgets = {};
+      state.goals = [];
+
+      // Add sample transactions for current and previous months
+      const sampleTransactions = [
+        // Current month
+        {
+          id: generateId(),
+          type: "income",
+          name: "Monthly Salary",
+          amount: 50000,
+          category: "salary",
+          date: new Date(currentYear, currentMonth, 5)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime(),
+        },
+        {
+          id: generateId(),
+          type: "expense",
+          name: "Rent",
+          amount: 15000,
+          category: "utilities",
+          date: new Date(currentYear, currentMonth, 7)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime(),
+        },
+        {
+          id: generateId(),
+          type: "expense",
+          name: "Grocery Shopping",
+          amount: 4500,
+          category: "food",
+          date: new Date(currentYear, currentMonth, 10)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime(),
+        },
+        {
+          id: generateId(),
+          type: "expense",
+          name: "Fuel",
+          amount: 2000,
+          category: "transport",
+          date: new Date(currentYear, currentMonth, 12)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime(),
+        },
+        {
+          id: generateId(),
+          type: "expense",
+          name: "Movie Night",
+          amount: 1500,
+          category: "entertainment",
+          date: new Date(currentYear, currentMonth, 15)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime(),
+        },
+        {
+          id: generateId(),
+          type: "income",
+          name: "Freelance Work",
+          amount: 10000,
+          category: "other",
+          date: new Date(currentYear, currentMonth, 18)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime(),
+        },
+        {
+          id: generateId(),
+          type: "expense",
+          name: "New Shoes",
+          amount: 3000,
+          category: "shopping",
+          date: new Date(currentYear, currentMonth, 20)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime(),
+        },
+
+        // Previous month
+        {
+          id: generateId(),
+          type: "income",
+          name: "Monthly Salary",
+          amount: 50000,
+          category: "salary",
+          date: new Date(currentYear, currentMonth - 1, 5)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime() - 86400000 * 30,
+        },
+        {
+          id: generateId(),
+          type: "expense",
+          name: "Rent",
+          amount: 15000,
+          category: "utilities",
+          date: new Date(currentYear, currentMonth - 1, 7)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime() - 86400000 * 30,
+        },
+        {
+          id: generateId(),
+          type: "expense",
+          name: "Grocery Shopping",
+          amount: 5000,
+          category: "food",
+          date: new Date(currentYear, currentMonth - 1, 10)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime() - 86400000 * 30,
+        },
+      ];
+
+      state.transactions = sampleTransactions;
+
+      // Add sample budgets
+      state.budgets = {
+        food: 7000,
+        transport: 3000,
+        utilities: 18000,
+        entertainment: 2500,
+        shopping: 5000,
+      };
+
+      // Add sample goals
+      state.goals = [
+        {
+          id: generateId(),
+          name: "Emergency Fund",
+          target: 100000,
+          current: 35000,
+          date: new Date(currentYear + 1, currentMonth, 1)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime(),
+        },
+        {
+          id: generateId(),
+          name: "New Laptop",
+          target: 80000,
+          current: 20000,
+          date: new Date(currentYear, currentMonth + 6, 1)
+            .toISOString()
+            .split("T")[0],
+          timestamp: new Date().getTime(),
+        },
+      ];
+
+      saveToLocalStorage();
+      renderData();
+      showNotification("Sample data added successfully!", "success");
+    }
+  }
+
+  // Render all data
+  function renderData() {
+    updateFinancialSummary();
+    renderTransactions();
+    renderBudgets();
+    renderGoals();
+    updateCharts();
+    calculateMonthlyComparisons();
+  }
+
+  // Make functions available globally
+  window.deleteTransaction = deleteTransaction;
+  window.deleteBudget = deleteBudget;
+  window.deleteGoal = deleteGoal;
+  window.updateGoalProgress = updateGoalProgress;
+});
+
+// Toggle between expense and income forms
+document
+  .getElementById("toggle-transaction-type")
+  .addEventListener("click", function () {
+    const tabs = document.querySelectorAll(".tab");
+    const expenseTab = document.querySelector('[data-tab="expense-tab"]');
+    const incomeTab = document.querySelector('[data-tab="income-tab"]');
+
+    if (expenseTab.classList.contains("active")) {
+      // Switch to income
+      expenseTab.classList.remove("active");
+      incomeTab.classList.add("active");
+      document.getElementById("expense-tab").classList.remove("active");
+      document.getElementById("income-tab").classList.add("active");
+      this.textContent = "Switch to Expense";
+    } else {
+      // Switch to expense
+      incomeTab.classList.remove("active");
+      expenseTab.classList.add("active");
+      document.getElementById("income-tab").classList.remove("active");
+      document.getElementById("expense-tab").classList.add("active");
+      this.textContent = "Switch to Income";
+    }
+  });
