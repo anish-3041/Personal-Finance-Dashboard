@@ -149,3 +149,5 @@ For inquiries, support, or collaboration opportunities:
 
 - Email: anishkumar2960.sths@gmail.com
 - GitHub: github.com/anish-3041
+
+“This project uses a public Firebase API key restricted by domain and API scope. Safe to expose.”
