@@ -124,6 +124,101 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeUI();
   }
 
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").then((reg) => {
+      // Attach update check button only when service worker is ready
+      if (reg.installing) {
+        reg.installing.addEventListener("statechange", () => {
+          if (reg.active) {
+            attachUpdateCheckButton(reg);
+          }
+        });
+      } else {
+        attachUpdateCheckButton(reg);
+      }
+
+      // ✅ If there's already a new SW waiting (like after reload)
+      if (reg.waiting) {
+        showNotification(
+          "🔄 A new version is ready. Click to update.",
+          "info",
+          10000
+        );
+        document.body.addEventListener("click", function handleUpdateClick() {
+          if (reg.waiting) {
+            reg.waiting.postMessage({ action: "skipWaiting" });
+            window.location.reload();
+          }
+
+          document.body.removeEventListener("click", handleUpdateClick);
+        });
+      }
+
+      // ✅ When a new SW is found while app is running
+      reg.onupdatefound = () => {
+        const newWorker = reg.installing;
+        newWorker.onstatechange = () => {
+          if (
+            newWorker.state === "installed" &&
+            navigator.serviceWorker.controller
+          ) {
+            showNotification(
+              "🔄 A new version is available. Click to update.",
+              "info",
+              10000
+            );
+            document.body.addEventListener(
+              "click",
+              function handleUpdateClick() {
+                newWorker.postMessage({ action: "skipWaiting" });
+                window.location.reload();
+                document.body.removeEventListener("click", handleUpdateClick);
+              }
+            );
+          }
+        };
+      };
+    });
+  }
+
+  // ✅ Button handler function
+  function attachUpdateCheckButton(reg) {
+    const updateBtn = document.getElementById("check-updates-btn");
+    if (!updateBtn) return;
+
+    updateBtn.addEventListener("click", () => {
+      console.log("📦 Manually checking for updates...");
+      reg
+        .update()
+        .then(() => {
+          showNotification("🔎 Checking for updates...", "info", 4000);
+
+          setTimeout(() => {
+            if (!reg.waiting && !reg.installing) {
+              showNotification(
+                "✅ You're already using the latest version!",
+                "success",
+                4000
+              );
+            }
+          }, 3000);
+        })
+        .catch((err) => {
+          console.warn("⚠️ ServiceWorker update failed:", err);
+        });
+    });
+  }
+
+  navigator.serviceWorker
+    .register("/sw.js")
+    .then((reg) => {
+      console.log("Service Worker registered successfully:", reg);
+      attachUpdateCheckButton(reg);
+    })
+    .catch((err) => {
+      console.error("Service Worker registration failed:", err);
+    });
+
   // Event listeners setup
   function setupEventListeners() {
     // Form submissions
@@ -204,25 +299,36 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load data from FirebaseDB
   async function loadFromFirebase(userId = state.userId) {
     try {
-      const docSnap = await window.firebaseGetDoc(
-        window.firebaseDoc(window.firebaseDB, "users", userId)
-      );
+      const ref = window.firebaseDoc(window.firebaseDB, "users", userId);
+      const docSnap = await window.firebaseGetDoc(ref);
+
       if (docSnap.exists()) {
         const data = docSnap.data();
         state.transactions = data.transactions || [];
         state.budgets = data.budgets || {};
         state.goals = data.goals || [];
         state.theme = data.theme || "light";
-        applyTheme(state.theme);
 
+        applyTheme(state.theme);
         renderData();
         console.log("✅ Data loaded from Firebase.");
       } else {
-        console.log("⚠️ No data found in Firebase.");
+        // 🆕 New user — no data yet (not an error)
+        console.log("🆕 No data yet for user:", userId);
+        state.theme = "light";
+        applyTheme(state.theme);
+        renderData();
+        showNotification(
+          "Welcome! Your data will be saved automatically.",
+          "info"
+        );
       }
     } catch (error) {
-      console.error("❌ Firebase load error:", error);
-      showNotification("Error loading from saving data.", "error");
+      console.error("❌ Firebase load error:", error.message);
+      showNotification(
+        "Error fetching your data. Please check your connection or try again.",
+        "error"
+      );
     }
   }
 
@@ -1537,39 +1643,29 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Show notification
-  function showNotification(message, type = "info") {
-    // Create notification element
+  function showNotification(message, type = "success", duration = 3000) {
     const notification = document.createElement("div");
     notification.className = `notification ${type} slide-in`;
+    notification.textContent = message;
 
-    // Create icon based on type
-    const icon = document.createElement("i");
-    if (type === "success") {
-      icon.className = "fas fa-check-circle";
-    } else if (type === "error") {
-      icon.className = "fas fa-exclamation-triangle";
-    } else {
-      icon.className = "fas fa-info-circle";
-    }
-
-    // Create message
-    const text = document.createElement("span");
-    text.textContent = message;
-
-    // Append elements
-    notification.appendChild(icon);
-    notification.appendChild(text);
-
-    // Add to DOM
     document.body.appendChild(notification);
 
-    // Remove after animation
+    // Force reflow to allow transition
+    void notification.offsetWidth;
+
+    // After animation, make it stick
     setTimeout(() => {
-      notification.classList.add("slide-out");
+      notification.classList.add("show");
+      notification.classList.remove("slide-in");
+    }, 500); // match your slideIn duration
+
+    // Hide after duration
+    setTimeout(() => {
+      notification.classList.remove("show");
       setTimeout(() => {
         notification.remove();
-      }, 300);
-    }, 3000);
+      }, 300); // match transition duration
+    }, duration);
   }
 
   // Export data to JSON file
