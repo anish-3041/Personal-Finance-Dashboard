@@ -120,54 +120,79 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Matching transaction:", transaction);
       });
 
+    document.getElementById("user-id-text").textContent = state.userId;
+
+    document.getElementById("copy-id").addEventListener("click", () => {
+      navigator.clipboard.writeText(state.userId);
+      showNotification("Device ID copied to clipboard!", "success");
+    });
+
     // Initialize UI
     initializeUI();
   }
 
-  if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').then((reg) => {
-    // When a new service worker is found
-    reg.onupdatefound = () => {
-      const newWorker = reg.installing;
-      newWorker.onstatechange = () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // New version available
-          showNotification("🔄 A new version is available. Click to update.", "info", 10000);
-          document.body.addEventListener("click", function handleUpdateClick() {
-            newWorker.postMessage({ action: "skipWaiting" });
-            window.location.reload();
-            document.body.removeEventListener("click", handleUpdateClick);
-          });
-        }
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").then((reg) => {
+      // When a new service worker is found
+      reg.onupdatefound = () => {
+        const newWorker = reg.installing;
+        newWorker.onstatechange = () => {
+          if (
+            newWorker.state === "installed" &&
+            navigator.serviceWorker.controller
+          ) {
+            // New version available
+            showNotification(
+              "🔄 A new version is available. Click to update.",
+              "info",
+              10000
+            );
+            document.body.addEventListener(
+              "click",
+              function handleUpdateClick() {
+                newWorker.postMessage({ action: "skipWaiting" });
+                window.location.reload();
+                document.body.removeEventListener("click", handleUpdateClick);
+              }
+            );
+          }
+        };
       };
-    };
 
-    // Manual update check
-    const btn = document.getElementById("check-updates-btn");
-    if (btn) {
-      btn.addEventListener("click", () => {
-        reg.update().then(() => {
-          showNotification("🔎 Checking for updates...", "info", 3000);
-          setTimeout(() => {
-            if (!reg.waiting && !reg.installing) {
-              showNotification("✅ You're already on the latest version.", "success", 4000);
-            }
-          }, 2500);
+      // Manual update check
+      const btn = document.getElementById("check-updates-btn");
+      if (btn) {
+        btn.addEventListener("click", () => {
+          reg.update().then(() => {
+            showNotification("🔎 Checking for updates...", "info", 3000);
+            setTimeout(() => {
+              if (!reg.waiting && !reg.installing) {
+                showNotification(
+                  "✅ You're already on the latest version.",
+                  "success",
+                  4000
+                );
+              }
+            }, 2500);
+          });
         });
-      });
-    }
+      }
 
-    // If SW is already waiting (e.g. app reopened)
-    if (reg.waiting) {
-      showNotification("🔄 New version ready! Click to update.", "info", 10000);
-      document.body.addEventListener("click", function handleUpdateClick() {
-        reg.waiting.postMessage({ action: "skipWaiting" });
-        window.location.reload();
-        document.body.removeEventListener("click", handleUpdateClick);
-      });
-    }
-  });
-}
+      // If SW is already waiting (e.g. app reopened)
+      if (reg.waiting) {
+        showNotification(
+          "🔄 New version ready! Click to update.",
+          "info",
+          10000
+        );
+        document.body.addEventListener("click", function handleUpdateClick() {
+          reg.waiting.postMessage({ action: "skipWaiting" });
+          window.location.reload();
+          document.body.removeEventListener("click", handleUpdateClick);
+        });
+      }
+    });
+  }
 
   // ✅ Button handler function
   function attachUpdateCheckButton(reg) {
@@ -276,45 +301,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Load data from FirebaseDB
   async function loadFromFirebase(userId = state.userId) {
-  try {
-    const ref = window.firebaseDoc(window.firebaseDB, "users", userId);
-    const docSnap = await window.firebaseGetDoc(ref);
+    try {
+      const ref = window.firebaseDoc(window.firebaseDB, "users", userId);
+      const docSnap = await window.firebaseGetDoc(ref);
 
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      state.transactions = data.transactions || [];
-      state.budgets = data.budgets || {};
-      state.goals = data.goals || [];
-      state.theme = data.theme || "light";
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        state.transactions = data.transactions || [];
+        state.budgets = data.budgets || {};
+        state.goals = data.goals || [];
+        state.theme = data.theme || "light";
 
-      applyTheme(state.theme);
-      renderData();
-      console.log("✅ Data loaded from Firebase.");
-    } else {
-      // ✅ No doc? Create a blank one
-      console.log("🆕 New user — creating blank doc.");
-      await window.firebaseSetDoc(ref, {
-        transactions: [],
-        budgets: {},
-        goals: [],
-        theme: "light",
-        created: new Date().toISOString()
-      });
+        applyTheme(state.theme);
+        renderData();
+        console.log("✅ Data loaded from Firebase.");
+      } else {
+        // ✅ No doc? Create a blank one
+        console.log("🆕 New user — creating blank doc.");
+        await window.firebaseSetDoc(ref, {
+          transactions: [],
+          budgets: {},
+          goals: [],
+          theme: "light",
+          created: new Date().toISOString(),
+        });
 
-      // Now load that
-      state.transactions = [];
-      state.budgets = {};
-      state.goals = [];
-      state.theme = "light";
-      applyTheme("light");
-      renderData();
-      showNotification("Welcome! Your data has been initialized.", "info");
+        // Now load that
+        state.transactions = [];
+        state.budgets = {};
+        state.goals = [];
+        state.theme = "light";
+        applyTheme("light");
+        renderData();
+        showNotification("Welcome! Your data has been initialized.", "info");
+      }
+    } catch (error) {
+      console.error("❌ Firebase load error:", error.message);
+      showNotification(
+        "Error fetching your data. Please check your connection or try again.",
+        "error"
+      );
     }
-  } catch (error) {
-    console.error("❌ Firebase load error:", error.message);
-    showNotification("Error fetching your data. Please check your connection or try again.", "error");
   }
-}
 
   // Save to Firebase DB
   async function saveToFirebase(userId = state.userId) {
@@ -1961,3 +1989,17 @@ document
       this.textContent = "Switch to Income";
     }
   });
+
+// Detect offline mode
+window.addEventListener("offline", () => {
+  showNotification(
+    "📴 You're offline. Changes will sync once reconnected.",
+    "info",
+    6000
+  );
+});
+
+// Optional: detect when back online
+window.addEventListener("online", () => {
+  showNotification("✅ Back online. Syncing data...", "success", 4000);
+});
