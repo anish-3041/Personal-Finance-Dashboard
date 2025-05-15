@@ -276,42 +276,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Load data from FirebaseDB
   async function loadFromFirebase(userId = state.userId) {
-    try {
-      const ref = window.firebaseDoc(window.firebaseDB, "users", userId);
-      const docSnap = await window.firebaseGetDoc(ref);
+  try {
+    const ref = window.firebaseDoc(window.firebaseDB, "users", userId);
+    const docSnap = await window.firebaseGetDoc(ref);
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        state.transactions = data.transactions || [];
-        state.budgets = data.budgets || {};
-        state.goals = data.goals || [];
-        state.theme = data.theme || "light";
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      state.transactions = data.transactions || [];
+      state.budgets = data.budgets || {};
+      state.goals = data.goals || [];
+      state.theme = data.theme || "light";
 
-        applyTheme(state.theme);
-        renderData();
-        console.log("✅ Data loaded from Firebase.");
-      } else {
-        // 🆕 New user — no data yet (not an error)
-        console.log("🆕 No data yet for user:", userId);
-        state.transactions = [];
-        state.budgets = {};
-        state.goals = [];
-        state.theme = "light";
-        applyTheme("light");
-        renderData();
-        showNotification(
-          "Welcome! Your data will be saved automatically.",
-          "info"
-        );
-      }
-    } catch (error) {
-      console.error("❌ Firebase load error:", error.message);
-      showNotification(
-        "Error fetching your data. Please check your connection or try again.",
-        "error"
-      );
+      applyTheme(state.theme);
+      renderData();
+      console.log("✅ Data loaded from Firebase.");
+    } else {
+      // ✅ No doc? Create a blank one
+      console.log("🆕 New user — creating blank doc.");
+      await window.firebaseSetDoc(ref, {
+        transactions: [],
+        budgets: {},
+        goals: [],
+        theme: "light",
+        created: new Date().toISOString()
+      });
+
+      // Now load that
+      state.transactions = [];
+      state.budgets = {};
+      state.goals = [];
+      state.theme = "light";
+      applyTheme("light");
+      renderData();
+      showNotification("Welcome! Your data has been initialized.", "info");
     }
+  } catch (error) {
+    console.error("❌ Firebase load error:", error.message);
+    showNotification("Error fetching your data. Please check your connection or try again.", "error");
   }
+}
 
   // Save to Firebase DB
   async function saveToFirebase(userId = state.userId) {
