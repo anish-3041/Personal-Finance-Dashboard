@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     transactions: [],
     budgets: {},
     goals: [],
-    theme: localStorage.getItem("theme") || "light",
+    theme: "light",
     comparisons: {
       previousMonthIncome: 0,
       previousMonthExpense: 0,
@@ -69,9 +69,15 @@ document.addEventListener("DOMContentLoaded", () => {
   initApp();
 
   // Function to initialize the application
-  function initApp() {
-    // Load data from local storage
-    loadFromLocalStorage();
+  async function initApp() {
+    if (!localStorage.getItem("userId")) {
+      localStorage.setItem("userId", "user-" + crypto.randomUUID());
+    }
+
+    state.userId = localStorage.getItem("userId");
+
+    // Load data from FirebaseDB
+    await loadFromFirebase();
 
     // Set up event listeners
     setupEventListeners();
@@ -105,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
         transaction.date = document.getElementById("edit-date").value;
         transaction.timestamp = new Date().toISOString();
 
-        saveToLocalStorage();
+        saveToFirebase();
         renderData();
         showNotification("Transaction updated successfully!", "success");
         document.getElementById("edit-modal").classList.add("hidden");
@@ -116,12 +122,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Initialize UI
     initializeUI();
-
-    // Apply current theme
-    applyTheme();
-
-    // Render all data
-    renderData();
   }
 
   // Event listeners setup
@@ -166,6 +166,15 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.importFile.addEventListener("change", importData);
     elements.generateReportBtn.addEventListener("click", generateReport);
     elements.addSampleDataBtn.addEventListener("click", addSampleData);
+    document.getElementById("reset-data-btn").addEventListener("click", () => {
+      showConfirmation(
+        "⚠️ This will erase all your saved data. Continue?",
+        async () => {
+          await resetUserData();
+          showNotification("Data reset successfully.", "success");
+        }
+      );
+    });
   }
 
   // Initialize UI elements
@@ -192,36 +201,57 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("doughnut-chart").style.display = "block";
   }
 
-  // Load data from localStorage
-  function loadFromLocalStorage() {
+  // Load data from FirebaseDB
+  async function loadFromFirebase(userId = state.userId) {
     try {
-      const savedTransactions = localStorage.getItem("transactions");
-      const savedBudgets = localStorage.getItem("budgets");
-      const savedGoals = localStorage.getItem("goals");
+      const docSnap = await window.firebaseGetDoc(
+        window.firebaseDoc(window.firebaseDB, "users", userId)
+      );
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        state.transactions = data.transactions || [];
+        state.budgets = data.budgets || {};
+        state.goals = data.goals || [];
+        state.theme = data.theme || "light";
+        applyTheme(state.theme);
 
-      if (savedTransactions) state.transactions = JSON.parse(savedTransactions);
-      if (savedBudgets) state.budgets = JSON.parse(savedBudgets);
-      if (savedGoals) state.goals = JSON.parse(savedGoals);
-
-      calculateMonthlyComparisons();
+        renderData();
+        console.log("✅ Data loaded from Firebase.");
+      } else {
+        console.log("⚠️ No data found in Firebase.");
+      }
     } catch (error) {
-      console.error("Error loading data from localStorage:", error);
-      showNotification("Error loading saved data.", "error");
+      console.error("❌ Firebase load error:", error);
+      showNotification("Error loading from saving data.", "error");
     }
   }
 
-  // Save data to localStorage
-  function saveToLocalStorage() {
+  // Save to Firebase DB
+  async function saveToFirebase(userId = state.userId) {
+    if (!window.firebaseDB) {
+      console.error("🔥 Firebase DB not initialized");
+      return;
+    }
+
     try {
-      localStorage.setItem("transactions", JSON.stringify(state.transactions));
-      localStorage.setItem("budgets", JSON.stringify(state.budgets));
-      localStorage.setItem("goals", JSON.stringify(state.goals));
-      localStorage.setItem("theme", state.theme);
+      await window.firebaseSetDoc(
+        window.firebaseDoc(window.firebaseDB, "users", userId),
+        {
+          transactions: state.transactions,
+          budgets: state.budgets,
+          goals: state.goals,
+          theme: state.theme,
+        }
+      );
+      console.log("✅ Data saved to Firebase.");
     } catch (error) {
-      console.error("Error saving to localStorage:", error);
+      console.error("❌ Firebase save error:", error);
       showNotification("Error saving data.", "error");
     }
   }
+
+  window.saveToFirebase = saveToFirebase;
+  window.loadFromFirebase = loadFromFirebase;
 
   // Handles income/expense form submission
   function handleTransactionSubmit(type, form, fieldPrefix) {
@@ -243,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     state.transactions.push(transaction);
-    saveToLocalStorage();
+    saveToFirebase();
     form.reset();
     document.getElementById(`${fieldPrefix}-date`).value = new Date()
       .toISOString()
@@ -269,7 +299,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     state.budgets[category] = amount;
-    saveToLocalStorage();
+    saveToFirebase();
 
     elements.budgetForm.reset();
     renderBudgets();
@@ -297,7 +327,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     state.goals.push(goal);
-    saveToLocalStorage();
+    saveToFirebase();
 
     elements.goalForm.reset();
     document.getElementById("goal-date").value = new Date(
@@ -415,7 +445,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function toggleTheme() {
     state.theme = state.theme === "light" ? "dark" : "light";
     applyTheme();
-    saveToLocalStorage();
+    saveToFirebase();
   }
 
   // Apply theme based on current state
@@ -1428,7 +1458,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (index !== -1) {
       state.transactions.splice(index, 1);
-      saveToLocalStorage();
+      saveToFirebase();
       renderData();
       showNotification("Transaction deleted successfully!", "success");
     }
@@ -1438,7 +1468,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function deleteBudget(category) {
     if (state.budgets[category]) {
       delete state.budgets[category];
-      saveToLocalStorage();
+      saveToFirebase();
       renderBudgets();
       updateCharts();
       showNotification("Budget deleted successfully!", "success");
@@ -1451,7 +1481,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (index !== -1) {
       state.goals.splice(index, 1);
-      saveToLocalStorage();
+      saveToFirebase();
       renderGoals();
       showNotification("Goal deleted successfully!", "success");
     }
@@ -1495,7 +1525,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (newAmount !== null && !isNaN(parseFloat(newAmount))) {
       goal.current = parseFloat(newAmount);
-      saveToLocalStorage();
+      saveToFirebase();
       renderGoals();
       showNotification("Goal progress updated!", "success");
     }
@@ -1587,7 +1617,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.budgets) state.budgets = data.budgets;
         if (data.goals) state.goals = data.goals;
 
-        saveToLocalStorage();
+        saveToFirebase();
         renderData();
 
         showNotification("Data imported successfully!", "success");
@@ -1786,10 +1816,28 @@ This is a simplified version. In a full implementation, a proper PDF would be ge
         },
       ];
 
-      saveToLocalStorage();
+      saveToFirebase();
       renderData();
       showNotification("Sample data added successfully!", "success");
     }
+  }
+
+  // user data reset
+  async function resetUserData() {
+    // Clear state
+    state.transactions = [];
+    state.budgets = {};
+    state.goals = [];
+    state.theme = "light";
+
+    // Save empty data to Firebase
+    await saveToFirebase();
+
+    // Apply default theme
+    applyTheme(state.theme);
+
+    // Re-render everything
+    renderData();
   }
 
   // Render all data

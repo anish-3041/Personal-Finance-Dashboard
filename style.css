@@ -3,7 +3,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 :root {
@@ -70,13 +70,17 @@ header {
 }
 
 header::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 5px;
-  background: linear-gradient(to right, var(--primary-color), var(--income-color));
+  background: linear-gradient(
+    to right,
+    var(--primary-color),
+    var(--income-color)
+  );
   transition: var(--transition);
 }
 
@@ -138,7 +142,7 @@ header p {
 }
 
 .summary-card::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;
@@ -286,7 +290,10 @@ header p {
 }
 
 /* Form styles */
-.entry-form, .budget-form, .goal-form, .calculator-form {
+.entry-form,
+.budget-form,
+.goal-form,
+.calculator-form {
   display: grid;
   gap: 18px;
 }
@@ -303,8 +310,8 @@ header p {
   transition: var(--transition);
 }
 
-.form-group input, 
-.form-group select, 
+.form-group input,
+.form-group select,
 .form-group textarea {
   padding: 12px 15px;
   border: 1px solid var(--border-color);
@@ -315,8 +322,8 @@ header p {
   transition: var(--transition);
 }
 
-.form-group input:focus, 
-.form-group select:focus, 
+.form-group input:focus,
+.form-group select:focus,
 .form-group textarea:focus {
   outline: none;
   border-color: var(--primary-color);
@@ -419,7 +426,7 @@ button:active {
 }
 
 @media (max-width: 450px) {
-  .entry-actions{
+  .entry-actions {
     flex-direction: column;
     align-items: flex-end;
   }
@@ -432,7 +439,7 @@ button:active {
 }
 
 @media (max-width: 450px) {
-  .entry-amount{
+  .entry-amount {
     margin-right: 0;
   }
 }
@@ -810,6 +817,27 @@ button:active {
   font-size: 14px;
 }
 
+.danger-btn {
+  background-color: #e74c3c; /* Red */
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.danger-btn:hover {
+  background-color: #c0392b; /* Darker red on hover */
+  transform: scale(1.03);
+}
+
+.danger-btn:active {
+  transform: scale(0.97);
+}
+
 .footer-info {
   color: var(--text-secondary);
   font-size: 14px;
@@ -830,7 +858,7 @@ button:active {
 }
 
 .modal {
-  background-color: var(--card-bg);  /* Matches light/dark mode */
+  background-color: var(--card-bg); /* Matches light/dark mode */
   color: var(--text-color);
   padding: 25px;
   border-radius: 10px;
@@ -889,8 +917,12 @@ button:active {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .slide-in {
@@ -898,8 +930,14 @@ button:active {
 }
 
 @keyframes slideIn {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .scale-in {
@@ -907,8 +945,14 @@ button:active {
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .bounce-in {
@@ -916,9 +960,18 @@ button:active {
 }
 
 @keyframes bounceIn {
-  0% { transform: scale(0.8); opacity: 0; }
-  70% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Spinner for loading states */
@@ -933,7 +986,9 @@ button:active {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Toast notifications */
@@ -966,15 +1021,33 @@ button:active {
 }
 
 /* Category colors */
-.category-food { color: #e74c3c; }
-.category-transport { color: #3498db; }
-.category-utilities { color: #2ecc71; }
-.category-entertainment { color: #f39c12; }
-.category-shopping { color: #9b59b6; }
-.category-salary { color: #16a085; }
-.category-investment { color: #27ae60; }
-.category-gifts { color: #8e44ad; }
-.category-other { color: #34495e; }
+.category-food {
+  color: #e74c3c;
+}
+.category-transport {
+  color: #3498db;
+}
+.category-utilities {
+  color: #2ecc71;
+}
+.category-entertainment {
+  color: #f39c12;
+}
+.category-shopping {
+  color: #9b59b6;
+}
+.category-salary {
+  color: #16a085;
+}
+.category-investment {
+  color: #27ae60;
+}
+.category-gifts {
+  color: #8e44ad;
+}
+.category-other {
+  color: #34495e;
+}
 
 /* Print styles for reports */
 @media print {
@@ -983,7 +1056,11 @@ button:active {
     color: black;
   }
 
-  header, button, .theme-toggle, .filter-container, .card:not(.print-show) {
+  header,
+  button,
+  .theme-toggle,
+  .filter-container,
+  .card:not(.print-show) {
     display: none !important;
   }
 
@@ -992,7 +1069,8 @@ button:active {
     padding: 0;
   }
 
-  .dashboard-summary, .dashboard-grid {
+  .dashboard-summary,
+  .dashboard-grid {
     display: block;
   }
 
@@ -1018,7 +1096,7 @@ button:active {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
 
-  .container h1{
+  .container h1 {
     margin-top: 2rem;
   }
 
