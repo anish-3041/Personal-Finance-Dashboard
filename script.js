@@ -124,62 +124,50 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeUI();
   }
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").then((reg) => {
-      // Attach update check button only when service worker is ready
-      if (reg.installing) {
-        reg.installing.addEventListener("statechange", () => {
-          if (reg.active) {
-            attachUpdateCheckButton(reg);
-          }
-        });
-      } else {
-        attachUpdateCheckButton(reg);
-      }
-
-      // ✅ If there's already a new SW waiting (like after reload)
-      if (reg.waiting) {
-        showNotification(
-          "🔄 A new version is ready. Click to update.",
-          "info",
-          10000
-        );
-        document.body.addEventListener("click", function handleUpdateClick() {
-          if (reg.waiting) {
-            reg.waiting.postMessage({ action: "skipWaiting" });
+  if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then((reg) => {
+    // When a new service worker is found
+    reg.onupdatefound = () => {
+      const newWorker = reg.installing;
+      newWorker.onstatechange = () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // New version available
+          showNotification("🔄 A new version is available. Click to update.", "info", 10000);
+          document.body.addEventListener("click", function handleUpdateClick() {
+            newWorker.postMessage({ action: "skipWaiting" });
             window.location.reload();
-          }
-
-          document.body.removeEventListener("click", handleUpdateClick);
-        });
-      }
-
-      // ✅ When a new SW is found while app is running
-      reg.onupdatefound = () => {
-        const newWorker = reg.installing;
-        newWorker.onstatechange = () => {
-          if (
-            newWorker.state === "installed" &&
-            navigator.serviceWorker.controller
-          ) {
-            showNotification(
-              "🔄 A new version is available. Click to update.",
-              "info",
-              10000
-            );
-            document.body.addEventListener(
-              "click",
-              function handleUpdateClick() {
-                newWorker.postMessage({ action: "skipWaiting" });
-                window.location.reload();
-                document.body.removeEventListener("click", handleUpdateClick);
-              }
-            );
-          }
-        };
+            document.body.removeEventListener("click", handleUpdateClick);
+          });
+        }
       };
-    });
-  }
+    };
+
+    // Manual update check
+    const btn = document.getElementById("check-updates-btn");
+    if (btn) {
+      btn.addEventListener("click", () => {
+        reg.update().then(() => {
+          showNotification("🔎 Checking for updates...", "info", 3000);
+          setTimeout(() => {
+            if (!reg.waiting && !reg.installing) {
+              showNotification("✅ You're already on the latest version.", "success", 4000);
+            }
+          }, 2500);
+        });
+      });
+    }
+
+    // If SW is already waiting (e.g. app reopened)
+    if (reg.waiting) {
+      showNotification("🔄 New version ready! Click to update.", "info", 10000);
+      document.body.addEventListener("click", function handleUpdateClick() {
+        reg.waiting.postMessage({ action: "skipWaiting" });
+        window.location.reload();
+        document.body.removeEventListener("click", handleUpdateClick);
+      });
+    }
+  });
+}
 
   // ✅ Button handler function
   function attachUpdateCheckButton(reg) {
