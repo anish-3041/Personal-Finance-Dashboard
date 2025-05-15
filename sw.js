@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-pfd-cache-v1';
+const CACHE_NAME = 'my-pfd-cache-v2'; // updated on may 15, 13:51
 const urlsToCache = [
   '/',
   '/index.html',
