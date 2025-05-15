@@ -180,16 +180,6 @@ document.addEventListener("DOMContentLoaded", () => {
         .update()
         .then(() => {
           showNotification("🔎 Checking for updates...", "info", 4000);
-
-          setTimeout(() => {
-            if (!reg.waiting && !reg.installing) {
-              showNotification(
-                "✅ You're already using the latest version!",
-                "success",
-                4000
-              );
-            }
-          }, 3000);
         })
         .catch((err) => {
           console.warn("⚠️ ServiceWorker update failed:", err);
@@ -303,8 +293,11 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         // 🆕 New user — no data yet (not an error)
         console.log("🆕 No data yet for user:", userId);
+        state.transactions = [];
+        state.budgets = {};
+        state.goals = [];
         state.theme = "light";
-        applyTheme(state.theme);
+        applyTheme("light");
         renderData();
         showNotification(
           "Welcome! Your data will be saved automatically.",
