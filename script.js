@@ -76,6 +76,44 @@ document.addEventListener("DOMContentLoaded", () => {
     // Set up event listeners
     setupEventListeners();
 
+    // === Edit Modal: Save & Cancel ===
+
+    // Hide modal on cancel
+    document.getElementById("edit-cancel").addEventListener("click", () => {
+      document.getElementById("edit-modal").classList.add("hidden");
+    });
+
+    document
+      .getElementById("edit-form")
+      .addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const id = document.getElementById("edit-id").value;
+        const transaction = state.transactions.find(
+          (t) => t.id.toString() === id
+        );
+        if (!transaction) {
+          console.warn("Transaction not found for ID:", id);
+          return;
+        }
+
+        transaction.name = document.getElementById("edit-name").value;
+        transaction.amount = parseFloat(
+          document.getElementById("edit-amount").value
+        );
+        transaction.category = document.getElementById("edit-category").value;
+        transaction.date = document.getElementById("edit-date").value;
+        transaction.timestamp = new Date().toISOString();
+
+        saveToLocalStorage();
+        renderData();
+        showNotification("Transaction updated successfully!", "success");
+        document.getElementById("edit-modal").classList.add("hidden");
+
+        console.log("Trying to update transaction with ID:", id);
+        console.log("Matching transaction:", transaction);
+      });
+
     // Initialize UI
     initializeUI();
 
@@ -89,8 +127,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // Event listeners setup
   function setupEventListeners() {
     // Form submissions
-    elements.expenseForm.addEventListener("submit", handleExpenseSubmit);
-    elements.incomeForm.addEventListener("submit", handleIncomeSubmit);
+    elements.expenseForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      handleTransactionSubmit("expense", elements.expenseForm, "expense");
+    });
+
+    elements.incomeForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      handleTransactionSubmit("income", elements.incomeForm, "income");
+    });
     elements.budgetForm.addEventListener("submit", handleBudgetSubmit);
     elements.goalForm.addEventListener("submit", handleGoalSubmit);
     elements.savingsCalcForm.addEventListener("submit", handleSavingsCalc);
@@ -178,18 +223,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Handle expense form submission
-  function handleExpenseSubmit(e) {
-    e.preventDefault();
-
-    const name = document.getElementById("expense-name").value;
-    const amount = parseFloat(document.getElementById("expense-amount").value);
-    const category = document.getElementById("expense-category").value;
-    const date = document.getElementById("expense-date").value;
+  // Handles income/expense form submission
+  function handleTransactionSubmit(type, form, fieldPrefix) {
+    const name = document.getElementById(`${fieldPrefix}-name`).value;
+    const amount = parseFloat(
+      document.getElementById(`${fieldPrefix}-amount`).value
+    );
+    const category = document.getElementById(`${fieldPrefix}-category`).value;
+    const date = document.getElementById(`${fieldPrefix}-date`).value;
 
     const transaction = {
       id: generateId(),
-      type: "expense",
+      type,
       name,
       amount,
       category,
@@ -199,45 +244,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     state.transactions.push(transaction);
     saveToLocalStorage();
-
-    elements.expenseForm.reset();
-    document.getElementById("expense-date").value = new Date()
+    form.reset();
+    document.getElementById(`${fieldPrefix}-date`).value = new Date()
       .toISOString()
       .split("T")[0];
 
     renderData();
-    showNotification("Expense added successfully!", "success");
-  }
-
-  // Handle income form submission
-  function handleIncomeSubmit(e) {
-    e.preventDefault();
-
-    const name = document.getElementById("income-name").value;
-    const amount = parseFloat(document.getElementById("income-amount").value);
-    const category = document.getElementById("income-category").value;
-    const date = document.getElementById("income-date").value;
-
-    const transaction = {
-      id: generateId(),
-      type: "income",
-      name,
-      amount,
-      category,
-      date,
-      timestamp: new Date().getTime(),
-    };
-
-    state.transactions.push(transaction);
-    saveToLocalStorage();
-
-    elements.incomeForm.reset();
-    document.getElementById("income-date").value = new Date()
-      .toISOString()
-      .split("T")[0];
-
-    renderData();
-    showNotification("Income added successfully!", "success");
+    showNotification(
+      `${type[0].toUpperCase() + type.slice(1)} added successfully!`,
+      "success"
+    );
   }
 
   // Handle budget form submission
@@ -375,25 +391,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Chart tab switching
-function switchChartTab(tab) {
-  const chartId = tab.getAttribute('data-chart');
+  function switchChartTab(tab) {
+    const chartId = tab.getAttribute("data-chart");
 
-  // Remove 'active' class from all chart tabs
-  document.querySelectorAll('.chart-tab').forEach(t => {
-    t.classList.remove('active');
-  });
+    // Remove 'active' class from all chart tabs
+    document.querySelectorAll(".chart-tab").forEach((t) => {
+      t.classList.remove("active");
+    });
 
-  // Add 'active' class to clicked tab
-  tab.classList.add('active');
+    // Add 'active' class to clicked tab
+    tab.classList.add("active");
 
-  // Hide all chart canvases
-  elements.doughnutChart.style.display = 'none';
-  elements.barChart.style.display = 'none';
-  elements.monthlyComparisonChart.style.display = 'none';
+    // Hide all chart canvases
+    elements.doughnutChart.style.display = "none";
+    elements.barChart.style.display = "none";
+    elements.monthlyComparisonChart.style.display = "none";
 
-  // Show only the selected chart canvas
-  document.getElementById(chartId).style.display = 'block';
-}
+    // Show only the selected chart canvas
+    document.getElementById(chartId).style.display = "block";
+  }
 
   // Toggle theme
   function toggleTheme() {
@@ -633,9 +649,11 @@ function switchChartTab(tab) {
                                 transaction.type === "income" ? "+" : "-"
                               } ₹${transaction.amount.toFixed(2)}
                           </span>
-                          <button class="delete-btn" onclick="deleteTransaction('${
+                          <button class="edit-btn" data-id="${
                             transaction.id
-                          }')">
+                          }" data-type="${transaction.type}">
+                          <i class="fas fa-pen"></i></button>
+                          <button class="delete-btn">
                               <i class="fas fa-trash"></i>
                           </button>
                       </div>
@@ -650,7 +668,34 @@ function switchChartTab(tab) {
     document.querySelectorAll(".delete-btn").forEach((btn) => {
       btn.addEventListener("click", function () {
         const id = this.parentElement.parentElement.getAttribute("data-id");
-        deleteTransaction(id);
+
+        showConfirmation(
+          "Are you sure you want to delete this transaction?",
+          () => {
+            deleteTransaction(id);
+          }
+        );
+      });
+    });
+
+    document.querySelectorAll(".edit-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const id = this.getAttribute("data-id");
+        const type = this.getAttribute("data-type");
+
+        const transaction = state.transactions.find(
+          (t) => t.id.toString() === id
+        );
+        if (!transaction) return;
+
+        document.getElementById("edit-id").value = id;
+        document.getElementById("edit-type").value = type;
+        document.getElementById("edit-name").value = transaction.name;
+        document.getElementById("edit-amount").value = transaction.amount;
+        document.getElementById("edit-category").value = transaction.category;
+        document.getElementById("edit-date").value = transaction.date;
+
+        document.getElementById("edit-modal").classList.remove("hidden");
       });
     });
   }
@@ -757,7 +802,7 @@ function switchChartTab(tab) {
                           </div>
                       </div>
                       <div class="budget-actions">
-                          <button class="delete-btn" onclick="deleteBudget('${category}')">
+                          <button class="delete-btn">
                               <i class="fas fa-trash"></i>
                           </button>
                       </div>
@@ -773,7 +818,14 @@ function switchChartTab(tab) {
       btn.addEventListener("click", function () {
         const category =
           this.parentElement.parentElement.querySelector("h4").textContent;
-        deleteBudget(getCategoryKey(category));
+        const categoryKey = getCategoryKey(category);
+
+        showConfirmation(
+          `Are you sure you want to delete the budget for "${category}"?`,
+          () => {
+            deleteBudget(categoryKey);
+          }
+        );
       });
     });
   }
@@ -840,9 +892,7 @@ function switchChartTab(tab) {
                           }')">
                               Update Progress
                           </button>
-                          <button class="delete-btn" onclick="deleteGoal('${
-                            goal.id
-                          }')">
+                          <button class="delete-btn">
                               <i class="fas fa-trash"></i>
                           </button>
                       </div>
@@ -864,7 +914,10 @@ function switchChartTab(tab) {
     document.querySelectorAll(".goal-actions .delete-btn").forEach((btn) => {
       btn.addEventListener("click", function () {
         const id = this.parentElement.parentElement.getAttribute("data-id");
-        deleteGoal(id);
+
+        showConfirmation("Are you sure you want to delete this goal?", () => {
+          deleteGoal(id);
+        });
       });
     });
   }
@@ -874,9 +927,28 @@ function switchChartTab(tab) {
     const chartPeriod = elements.chartPeriod.value;
     const filteredTransactions = filterTransactionsByPeriod(chartPeriod);
 
+    // Get the currently active chart tab ID
+    const activeChartTab = document.querySelector(".chart-tab.active");
+    const activeChartId = activeChartTab?.getAttribute("data-chart");
+
+    // Update all chart data
     updateDoughnutChart(filteredTransactions);
     updateBarChart(filteredTransactions);
-    updateMonthlyComparisonChart();
+    updateMonthlyComparisonChart(filteredTransactions);
+
+    // Hide all chart canvases
+    elements.doughnutChart.style.display = "none";
+    elements.barChart.style.display = "none";
+    elements.monthlyComparisonChart.style.display = "none";
+
+    // Show only the chart canvas that matches the active chart tab
+    if (activeChartId === "doughnut-chart") {
+      elements.doughnutChart.style.display = "block";
+    } else if (activeChartId === "bar-chart") {
+      elements.barChart.style.display = "block";
+    } else if (activeChartId === "monthly-comparison-chart") {
+      elements.monthlyComparisonChart.style.display = "block";
+    }
   }
 
   // Filter transactions by selected period
@@ -1046,79 +1118,79 @@ function switchChartTab(tab) {
     if (charts.bar) {
       charts.bar.destroy();
     }
-      charts.bar = new Chart(elements.barChart, {
-        type: "bar",
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "Income",
-              data: incomeData,
-              backgroundColor: "#66BB6A",
-              borderColor: "#43A047",
-              borderWidth: 1,
-            },
-            {
-              label: "Expenses",
-              data: expenseData,
-              backgroundColor: "#EF5350",
-              borderColor: "#E53935",
-              borderWidth: 1,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "top",
-              labels: {
-                color: themeColors.textColor,
-                padding: 20,
-                font: {
-                  size: 14,
-                },
-              },
-            },
-            title: {
-              display: true,
-              text: "Monthly Income vs Expenses",
+    charts.bar = new Chart(elements.barChart, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Income",
+            data: incomeData,
+            backgroundColor: "#66BB6A",
+            borderColor: "#43A047",
+            borderWidth: 1,
+          },
+          {
+            label: "Expenses",
+            data: expenseData,
+            backgroundColor: "#EF5350",
+            borderColor: "#E53935",
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "top",
+            labels: {
               color: themeColors.textColor,
+              padding: 20,
               font: {
-                size: 16,
-                weight: "bold",
-              },
-              padding: {
-                top: 10,
-                bottom: 30,
+                size: 14,
               },
             },
           },
-          scales: {
-            x: {
-              ticks: {
-                color: themeColors.textColor,
-              },
-              grid: {
-                color: themeColors.gridColor,
-              },
+          title: {
+            display: true,
+            text: "Monthly Income vs Expenses",
+            color: themeColors.textColor,
+            font: {
+              size: 16,
+              weight: "bold",
             },
-            y: {
-              beginAtZero: true,
-              ticks: {
-                color: themeColors.textColor,
-                callback: function (value) {
-                  return "₹" + value;
-                },
-              },
-              grid: {
-                color: themeColors.gridColor,
-              },
+            padding: {
+              top: 10,
+              bottom: 30,
             },
           },
         },
-      });
+        scales: {
+          x: {
+            ticks: {
+              color: themeColors.textColor,
+            },
+            grid: {
+              color: themeColors.gridColor,
+            },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: themeColors.textColor,
+              callback: function (value) {
+                return "₹" + value;
+              },
+            },
+            grid: {
+              color: themeColors.gridColor,
+            },
+          },
+        },
+      },
+    });
   }
 
   // Update monthly comparison chart
@@ -1169,93 +1241,93 @@ function switchChartTab(tab) {
     if (charts.monthlyComparison) {
       charts.monthlyComparison.destroy();
     }
-      charts.monthlyComparison = new Chart(elements.monthlyComparisonChart, {
-        type: "line",
-        data: {
-          labels: months,
-          datasets: [
-            {
-              label: "Income",
-              data: incomeData,
-              borderColor: "#66BB6A",
-              backgroundColor: "rgba(102, 187, 106, 0.2)",
-              borderWidth: 2,
-              tension: 0.4,
-              fill: true,
-            },
-            {
-              label: "Expenses",
-              data: expenseData,
-              borderColor: "#EF5350",
-              backgroundColor: "rgba(239, 83, 80, 0.2)",
-              borderWidth: 2,
-              tension: 0.4,
-              fill: true,
-            },
-            {
-              label: "Balance",
-              data: balanceData,
-              borderColor: "#42A5F5",
-              backgroundColor: "rgba(66, 165, 245, 0.2)",
-              borderWidth: 2,
-              borderDash: [5, 5],
-              tension: 0.4,
-              fill: false,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "top",
-              labels: {
-                color: themeColors.textColor,
-                padding: 20,
-                font: {
-                  size: 14,
-                },
-              },
-            },
-            title: {
-              display: true,
-              text: "6-Month Financial Trend",
+    charts.monthlyComparison = new Chart(elements.monthlyComparisonChart, {
+      type: "line",
+      data: {
+        labels: months,
+        datasets: [
+          {
+            label: "Income",
+            data: incomeData,
+            borderColor: "#66BB6A",
+            backgroundColor: "rgba(102, 187, 106, 0.2)",
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true,
+          },
+          {
+            label: "Expenses",
+            data: expenseData,
+            borderColor: "#EF5350",
+            backgroundColor: "rgba(239, 83, 80, 0.2)",
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true,
+          },
+          {
+            label: "Balance",
+            data: balanceData,
+            borderColor: "#42A5F5",
+            backgroundColor: "rgba(66, 165, 245, 0.2)",
+            borderWidth: 2,
+            borderDash: [5, 5],
+            tension: 0.4,
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "top",
+            labels: {
               color: themeColors.textColor,
+              padding: 20,
               font: {
-                size: 16,
-                weight: "bold",
-              },
-              padding: {
-                top: 10,
-                bottom: 30,
+                size: 14,
               },
             },
           },
-          scales: {
-            x: {
-              ticks: {
-                color: themeColors.textColor,
-              },
-              grid: {
-                color: themeColors.gridColor,
-              },
+          title: {
+            display: true,
+            text: "6-Month Financial Trend",
+            color: themeColors.textColor,
+            font: {
+              size: 16,
+              weight: "bold",
             },
-            y: {
-              beginAtZero: true,
-              ticks: {
-                color: themeColors.textColor,
-                callback: function (value) {
-                  return "₹" + value;
-                },
-              },
-              grid: {
-                color: themeColors.gridColor,
-              },
+            padding: {
+              top: 10,
+              bottom: 30,
             },
           },
         },
-      });
+        scales: {
+          x: {
+            ticks: {
+              color: themeColors.textColor,
+            },
+            grid: {
+              color: themeColors.gridColor,
+            },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: themeColors.textColor,
+              callback: function (value) {
+                return "₹" + value;
+              },
+            },
+            grid: {
+              color: themeColors.gridColor,
+            },
+          },
+        },
+      },
+    });
   }
 
   // Get theme-specific colors for charts
@@ -1327,6 +1399,29 @@ function switchChartTab(tab) {
     return categoryMap[name] || name;
   }
 
+  // Fixed handleEditTransaction function
+  function handleEditTransaction(id, type) {
+    // Determine the correct array based on type
+    const typeList = type === "expense" ? "expenses" : "incomes";
+    const item = transactions[typeList].find((entry) => entry.id === id);
+
+    if (!item) {
+      console.error(`Transaction with ID ${id} not found in ${typeList}`);
+      return;
+    }
+
+    // Fill modal form
+    document.getElementById("edit-id").value = id;
+    document.getElementById("edit-type").value = type;
+    document.getElementById("edit-name").value = item.name;
+    document.getElementById("edit-amount").value = item.amount;
+    document.getElementById("edit-category").value = item.category;
+    document.getElementById("edit-date").value = item.date;
+
+    // Show modal
+    document.getElementById("edit-modal").classList.remove("hidden");
+  }
+
   // Delete transaction
   function deleteTransaction(id) {
     const index = state.transactions.findIndex((t) => t.id === id);
@@ -1360,6 +1455,31 @@ function switchChartTab(tab) {
       renderGoals();
       showNotification("Goal deleted successfully!", "success");
     }
+  }
+
+  // Delete confirmation Dialog Box
+  function showConfirmation(message, onConfirm) {
+    console.log("CONFIRMATION SHOWN");
+    const dialog = document.getElementById("confirm-dialog");
+    const msg = document.getElementById("confirm-message");
+    const yesBtn = document.getElementById("confirm-yes");
+    const noBtn = document.getElementById("confirm-no");
+
+    msg.textContent = message;
+    dialog.classList.remove("hidden");
+
+    const cleanup = () => {
+      yesBtn.onclick = null;
+      noBtn.onclick = null;
+      dialog.classList.add("hidden");
+    };
+
+    yesBtn.onclick = () => {
+      cleanup();
+      onConfirm();
+    };
+
+    noBtn.onclick = cleanup;
   }
 
   // Update goal progress

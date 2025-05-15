@@ -11,6 +11,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Money Mitra">
     <link rel="apple-touch-icon" href="/assets/images/icon-192x192.png">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <!-- CSS -->
@@ -325,11 +327,97 @@
                     </div>
                 </div>
                 <div class="footer-info">
-                    <p>Personal Finance Dashboard - Phase 3</p>
+                    <p>Personal Finance Dashboard &copy; Anish Kumar</p>
                 </div>
             </div>
         </div>
     </div>
+
+    <div id="edit-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <h3>Edit Transaction</h3>
+        <form id="edit-form" class="entry-form">
+          <input type="hidden" id="edit-id" />
+          <input type="hidden" id="edit-type" />
+
+          <div class="form-group">
+            <label for="edit-name">Description</label>
+            <input type="text" id="edit-name" required />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-amount">Amount (₹)</label>
+              <input
+                type="number"
+                id="edit-amount"
+                min="0.01"
+                step="0.01"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="edit-category">Category</label>
+              <select id="edit-category" required>
+                <option value="food">Food & Dining</option>
+                <option value="transport">Transportation</option>
+                <option value="utilities">Utilities & Bills</option>
+                <option value="entertainment">Entertainment</option>
+                <option value="shopping">Shopping</option>
+                <option value="salary">Salary & Wages</option>
+                <option value="investment">Investments</option>
+                <option value="gifts">Gifts & Rewards</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-date">Date</label>
+            <input type="date" id="edit-date" required />
+          </div>
+          <div class="modal-actions">
+            <button type="submit">Save</button>
+            <button type="button" id="edit-cancel">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div id="budget-edit-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <h3>Edit Budget</h3>
+        <form id="budget-edit-form" class="entry-form">
+          <input type="hidden" id="edit-budget-category" />
+
+          <div class="form-group">
+            <label for="edit-budget-display">Category</label>
+            <input type="text" id="edit-budget-display" disabled />
+          </div>
+          <div class="form-group">
+            <label for="edit-budget-amount">Amount (₹)</label>
+            <input
+              type="number"
+              id="edit-budget-amount"
+              min="1"
+              step="0.01"
+              required
+            />
+          </div>
+          <div class="modal-actions">
+            <button type="submit">Update</button>
+            <button type="button" id="cancel-budget-edit">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="confirm-dialog" class="modal-overlay hidden">
+  <div class="modal">
+    <p id="confirm-message">Are you sure?</p>
+    <div class="modal-actions">
+      <button id="confirm-yes" class="confirm-btn danger">Yes</button>
+      <button id="confirm-no" class="confirm-btn">No</button>
+    </div>
+  </div>
+</div>
 
     <!-- Hidden file input for import -->
     <input type="file" id="import-file" style="display: none;" accept=".json">
