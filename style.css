@@ -838,18 +838,24 @@ button:active {
   transform: scale(0.97);
 }
 
-.secondary-btn {
-  background-color: var(--card-bg, #555);
-  color: white;
-  padding: 8px 14px;
-  border-radius: 6px;
+/* Plain theme-adaptive button */
+.plain-btn {
+  background-color: transparent;
+  color: var(--text-color); /* adapts to theme */
+  padding: 8px 12px;
+  border: none;
   font-weight: 500;
   cursor: pointer;
-  border: none;
-  transition: background-color 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.3s ease;
 }
-.secondary-btn:hover {
-  background-color: var(--primary-color, #4f46e5);
+
+.plain-btn:hover {
+  color: var(--text-color); /* prevent color change */
+  text-decoration: underline; /* optional subtle hover */
+  background-color: transparent;
 }
 
 .footer-info {
@@ -1121,7 +1127,6 @@ button:active {
 
   .filter-container {
     flex-direction: column;
-    align-items: flex-start;
     gap: 10px;
   }
 
