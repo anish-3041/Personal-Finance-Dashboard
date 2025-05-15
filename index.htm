@@ -4,29 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Personal Finance Dashboard</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#000000" />
     <!-- iOS Meta Tags (Optional but recommended) -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="Money Mitra">
-    <link rel="apple-touch-icon" href="/assets/images/icon-192x192.png">
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-status-bar-style" content="black" />
+    <meta name="mobile-web-app-title" content="Money Mitra" />
+    <link rel="touch-icon" href="/assets/images/icon-192x192.png" />
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <!-- Chart.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <!-- CSS -->
     <link rel="stylesheet" href="style.css" />
     <!-- Service Worker Registration -->
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
             .then((registration) => {
-              console.log('ServiceWorker registered:', registration);
+              console.log("ServiceWorker registered:", registration);
             })
             .catch((err) => {
-              console.error('ServiceWorker registration failed:', err);
+              console.error("ServiceWorker registration failed:", err);
             });
         });
       }
@@ -413,11 +417,15 @@
                 <i class="fas fa-database"></i> Add Sample Data
               </button>
               <button id="reset-data-btn" class="danger-btn">
-                <i class="fas fa-broom"></i> Reset My Data</button>
+                <i class="fas fa-broom"></i> Reset My Data
+              </button>
+              <button id="check-updates-btn" class="secondary-btn">
+                <i class="fas fa-rotate"></i> Check for Updates
+              </button>
             </div>
           </div>
           <div class="footer-info">
-            <p>Personal Finance Dashboard &copy; Anish Kumar</p>
+            <p>Personal Finance Dashboard 1.0.1 &copy; Anish Kumar</p>
           </div>
         </div>
       </div>
