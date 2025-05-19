@@ -132,66 +132,67 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").then((reg) => {
-      // When a new service worker is found
-      reg.onupdatefound = () => {
-        const newWorker = reg.installing;
-        newWorker.onstatechange = () => {
-          if (
-            newWorker.state === "installed" &&
-            navigator.serviceWorker.controller
-          ) {
-            // New version available
-            showNotification(
-              "🔄 A new version is available. Click to update.",
-              "info",
-              10000
-            );
-            document.body.addEventListener(
-              "click",
-              function handleUpdateClick() {
-                newWorker.postMessage({ action: "skipWaiting" });
-                window.location.reload();
-                document.body.removeEventListener("click", handleUpdateClick);
-              }
-            );
-          }
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        console.log("✅ Service Worker registered:", reg);
+
+        // Handle new updates
+        const handleUpdate = (worker) => {
+          showNotification(
+            "🔄 A new version is available. Click to update.",
+            "info",
+            10000
+          );
+          const updateHandler = () => {
+            worker.postMessage({ action: "skipWaiting" });
+            window.location.reload();
+            document.body.removeEventListener("click", updateHandler);
+          };
+          document.body.addEventListener("click", updateHandler);
         };
-      };
 
-      // Manual update check
-      const btn = document.getElementById("check-updates-btn");
-      if (btn) {
-        btn.addEventListener("click", () => {
-          reg.update().then(() => {
-            showNotification("🔎 Checking for updates...", "info", 3000);
-            setTimeout(() => {
-              if (!reg.waiting && !reg.installing) {
-                showNotification(
-                  "✅ You're already on the latest version.",
-                  "success",
-                  4000
-                );
-              }
-            }, 2500);
+        // Detect if new SW is installing
+        reg.onupdatefound = () => {
+          const newWorker = reg.installing;
+          newWorker.onstatechange = () => {
+            if (
+              newWorker.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
+              handleUpdate(newWorker);
+            }
+          };
+        };
+
+        // Manual update button
+        const updateBtn = document.getElementById("check-updates-btn");
+        if (updateBtn) {
+          updateBtn.addEventListener("click", () => {
+            console.log("📦 Manually checking for updates...");
+            reg.update().then(() => {
+              showNotification("🔎 Checking for updates...", "info", 3000);
+              setTimeout(() => {
+                if (!reg.waiting && !reg.installing) {
+                  showNotification(
+                    "✅ You're already on the latest version.",
+                    "success",
+                    4000
+                  );
+                }
+              }, 2500);
+            });
           });
-        });
-      }
+        }
 
-      // If SW is already waiting (e.g. app reopened)
-      if (reg.waiting) {
-        showNotification(
-          "🔄 New version ready! Click to update.",
-          "info",
-          10000
-        );
-        document.body.addEventListener("click", function handleUpdateClick() {
-          reg.waiting.postMessage({ action: "skipWaiting" });
-          window.location.reload();
-          document.body.removeEventListener("click", handleUpdateClick);
-        });
-      }
-    });
+        // Already waiting worker (e.g. app reopened)
+        if (reg.waiting) {
+          handleUpdate(reg.waiting);
+        }
+      })
+      .catch((err) => {
+        console.error("❌ Service Worker registration failed:", err);
+      });
   }
 
   // ✅ Button handler function
@@ -272,6 +273,22 @@ document.addEventListener("DOMContentLoaded", () => {
           showNotification("Data reset successfully.", "success");
         }
       );
+    });
+    // Info modal toggle
+    document.getElementById("info-btn").addEventListener("click", () => {
+      document.getElementById("info-modal").classList.remove("hidden");
+    });
+    document.getElementById("info-close-btn").addEventListener("click", () => {
+      document.getElementById("info-modal").classList.add("hidden");
+    });
+
+    // Close modal when clicking outside the modal content
+    document.querySelectorAll(".modal-overlay").forEach((overlay) => {
+      overlay.addEventListener("click", function (event) {
+        if (event.target === this) {
+          this.classList.add("hidden");
+        }
+      });
     });
   }
 
