@@ -1963,6 +1963,20 @@ This is a simplified version. In a full implementation, a proper PDF would be ge
   window.deleteBudget = deleteBudget;
   window.deleteGoal = deleteGoal;
   window.updateGoalProgress = updateGoalProgress;
+
+  // Detect offline mode
+  window.addEventListener("offline", () => {
+    showNotification(
+      "📴 You're offline. Changes will sync once reconnected.",
+      "info",
+      6000
+    );
+  });
+
+  // Optional: detect when back online
+  window.addEventListener("online", () => {
+    showNotification("✅ Back online. Syncing data...", "success", 4000);
+  });
 });
 
 // Toggle between expense and income forms
@@ -1989,17 +2003,3 @@ document
       this.textContent = "Switch to Income";
     }
   });
-
-// Detect offline mode
-window.addEventListener("offline", () => {
-  showNotification(
-    "📴 You're offline. Changes will sync once reconnected.",
-    "info",
-    6000
-  );
-});
-
-// Optional: detect when back online
-window.addEventListener("online", () => {
-  showNotification("✅ Back online. Syncing data...", "success", 4000);
-});
