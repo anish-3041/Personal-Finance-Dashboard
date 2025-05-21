@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1.0.9'; // update this on each release
+const CACHE_VERSION = 'v1.1.10'; // update this on each release
 const CACHE_NAME = `pfd-cache-${CACHE_VERSION}`;
 const URLS_TO_CACHE = [
   './',
