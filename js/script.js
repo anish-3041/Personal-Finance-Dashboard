@@ -273,22 +273,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       );
     });
-    // Info modal toggle
-    document.getElementById("info-btn").addEventListener("click", () => {
-      document.getElementById("info-modal").classList.remove("hidden");
-    });
-    document.getElementById("info-close-btn").addEventListener("click", () => {
-      document.getElementById("info-modal").classList.add("hidden");
-    });
-
-    // Close modal when clicking outside the modal content
-    document.querySelectorAll(".modal-overlay").forEach((overlay) => {
-      overlay.addEventListener("click", function (event) {
-        if (event.target === this) {
-          this.classList.add("hidden");
-        }
-      });
-    });
   }
 
   // Initialize UI elements
@@ -1981,18 +1965,19 @@ This is a simplified version. In a full implementation, a proper PDF would be ge
   window.updateGoalProgress = updateGoalProgress;
 
   // Detect offline mode
-  window.addEventListener("offline", () => {
-    showNotification(
-      "📴 You're offline. Changes will sync once reconnected.",
-      "info",
-      6000
-    );
-  });
+window.addEventListener("offline", () => {
+  showNotification(
+    "📴 You're offline. Changes will sync once reconnected.",
+    "info",
+    6000
+  );
+});
 
-  // Optional: detect when back online
-  window.addEventListener("online", () => {
-    showNotification("✅ Back online. Syncing data...", "success", 4000);
-  });
+// Optional: detect when back online
+window.addEventListener("online", () => {
+  showNotification("✅ Back online. Syncing data...", "success", 4000);
+});
+
 });
 
 // Toggle between expense and income forms
@@ -2019,3 +2004,4 @@ document
       this.textContent = "Switch to Income";
     }
   });
+

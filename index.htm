@@ -12,14 +12,11 @@
     <meta name="mobile-web-app-title" content="Money Mitra" />
     <link rel="touch-icon" href="/assets/images/icon-192x192.png" />
     <!-- Font Awesome -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <link rel="stylesheet" href="/assets/fonts/font-awesome.css?v=1.0.5" />
     <!-- Chart.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="/js/chart.min.js?v=1.0.5"></script>
     <!-- CSS -->
-    <link rel="stylesheet" href="style.css?v=1.0.6" />
+    <link rel="stylesheet" href="/style.css?v=1.0.5" />
     <!-- Service Worker Registration -->
     <script>
       if ("serviceWorker" in navigator) {
@@ -422,10 +419,6 @@
               <button id="check-updates-btn" class="plain-btn">
                 <i class="fas fa-rotate"></i> Check for Updates
               </button>
-              <!-- Info Button -->
-              <button id="info-btn" class="plain-btn">
-                <i class="fas fa-info-circle"></i> Info
-              </button>
             </div>
           </div>
           <div class="footer-info">
@@ -527,52 +520,6 @@
       </div>
     </div>
 
-    <!-- Info Modal -->
-    <div id="info-modal" class="modal-overlay hidden">
-      <div class="modal">
-        <h3>About Money Mitra</h3>
-        <div class="modal-content" style="max-height: 400px; overflow-y: auto">
-          <ul>
-            <li>
-              <strong>Track Income & Expenses:</strong> Categorize and log all
-              transactions.
-            </li>
-            <li>
-              <strong>Set Budgets:</strong> Create monthly limits per category
-              and monitor usage.
-            </li>
-            <li>
-              <strong>Monitor Financial Goals:</strong> Set target savings and
-              track progress.
-            </li>
-            <li>
-              <strong>Savings Calculator:</strong> Estimate future savings with
-              interest.
-            </li>
-            <li>
-              <strong>Visual Charts:</strong> View breakdowns and trends with
-              interactive graphs.
-            </li>
-            <li>
-              <strong>Theme Toggle:</strong> Switch between Light and Dark
-              modes.
-            </li>
-            <li>
-              <strong>Data Tools:</strong> Import/export your data, or load
-              sample data to explore features.
-            </li>
-            <li>
-              <strong>Offline Support:</strong> Works even without internet once
-              loaded.
-            </li>
-          </ul>
-        </div>
-        <div class="modal-actions">
-          <button type="button" id="info-close-btn">Close</button>
-        </div>
-      </div>
-    </div>
-
     <!-- Hidden file input for import -->
     <input type="file" id="import-file" style="display: none" accept=".json" />
 
@@ -585,6 +532,7 @@
         doc,
         setDoc,
         getDoc,
+        enableIndexedDbPersistence
       } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js";
 
       // Your Firebase config
@@ -603,13 +551,26 @@
       const analytics = getAnalytics(app);
       const db = getFirestore(app);
 
-      // Store globally so script.js can access it
+      // Offline Access
+      enableIndexedDbPersistence(db)
+        .then(() => {
+          console.log("✅ Offline persistence enabled");
+        })
+        .catch((err) => {
+          if (err.code === "failed-precondition") {
+            console.warn("❗ Multiple tabs open — persistence not enabled.");
+          } else if (err.code === "unimplemented") {
+            console.warn("❗ Browser does not support persistence.");
+          }
+        });
+
+      // Make Firebase functions globally accessible
       window.firebaseDB = db;
       window.firebaseDoc = doc;
       window.firebaseGetDoc = getDoc;
       window.firebaseSetDoc = setDoc;
     </script>
 
-    <script src="script.js?v=1.0.6"></script>
+    <script src="/js/script.js?v=1.0.5"></script>
   </body>
 </html>
