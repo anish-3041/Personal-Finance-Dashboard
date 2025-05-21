@@ -4,25 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Personal Finance Dashboard</title>
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="./manifest.json" />
     <meta name="theme-color" content="#000000" />
     <!-- iOS Meta Tags (Optional but recommended) -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-status-bar-style" content="black" />
     <meta name="mobile-web-app-title" content="Money Mitra" />
-    <link rel="touch-icon" href="/assets/images/icon-192x192.png" />
+    <link rel="touch-icon" href="./assets/images/icon-192x192.png" />
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="/assets/fonts/font-awesome.css?v=1.0.5" />
+    <link rel="stylesheet" href="./assets/fonts/font-awesome.css?v=1.0.5" />
     <!-- Chart.js -->
-    <script src="/js/chart.min.js?v=1.0.5"></script>
+    <script src="./js/chart.min.js?v=1.0.5"></script>
     <!-- CSS -->
-    <link rel="stylesheet" href="/style.css?v=1.0.5" />
+    <link rel="stylesheet" href="./style.css?v=1.0.5" />
     <!-- Service Worker Registration -->
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
-            .register("/sw.js")
+            .register("./sw.js")
             .then((registration) => {
               console.log("ServiceWorker registered:", registration);
             })
@@ -571,6 +571,6 @@
       window.firebaseSetDoc = setDoc;
     </script>
 
-    <script src="/js/script.js?v=1.0.5"></script>
+    <script src="./js/script.js?v=1.0.5"></script>
   </body>
 </html>
