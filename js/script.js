@@ -132,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js").then((reg) => {
+    navigator.serviceWorker.register("./sw.js").then((reg) => {
       // When a new service worker is found
       reg.onupdatefound = () => {
         const newWorker = reg.installing;
@@ -213,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   navigator.serviceWorker
-    .register("/sw.js")
+    .register("./sw.js")
     .then((reg) => {
       console.log("Service Worker registered successfully:", reg);
       attachUpdateCheckButton(reg);
