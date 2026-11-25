@@ -1,6 +1,8 @@
-# Personal Finance Dashboard
+# MoneyMitra: Smart Personal Finance Dashboard
 
-A comprehensive and responsive web application to track personal finances, manage budgets, set financial goals, and visualize spending patterns. This dashboard provides a complete financial overview with interactive charts, transaction management, and savings planning tools.
+MoneyMitra is a responsive personal-finance planner that tracks transactions, manages budgets, supports savings goals, and turns recorded data into clear next-step guidance. Version 2 adds an explainable Smart Money Coach with a wellness score, month-end spending forecast, daily spending envelope, and personalised recommendations.
+
+For a project abstract, module breakdown, algorithm explanation, and viva-ready demo flow, see [MINI_PROJECT_GUIDE.md](MINI_PROJECT_GUIDE.md).
 
 ## Features
 
@@ -9,6 +11,12 @@ A comprehensive and responsive web application to track personal finances, manag
 - **Transaction History**: View all transactions with powerful filtering options (type, period, search)
 - **Financial Summary**: Real-time overview of total income, expenses, balance, and savings rate
 - **Trend Analysis**: Month-over-month comparison of financial metrics
+
+### Smart Money Coach (Version 2)
+- **Financial Wellness Score**: Combines savings rate, budget discipline, and goal progress into an explainable score out of 100
+- **Month-End Forecast**: Projects spending from current-month average daily expense
+- **Daily Spending Envelope**: Suggests a daily amount based on remaining budget or disposable income
+- **Priority Recommendations**: Highlights the largest spending category, budget risks, projected surplus/deficit, and goal contribution needs
 
 ### Budgeting Tools
 - **Category Budgets**: Set monthly budgets for different expense categories
@@ -39,7 +47,7 @@ A comprehensive and responsive web application to track personal finances, manag
 - **Charting**: Chart.js (v3.9.1)
 - **Icons**: Font Awesome (v6.4.0)
 - **Design**: CSS Variables for theme switching
-- **Storage**: Browser localStorage for data persistence
+- **Storage**: Firebase Firestore with IndexedDB persistence for offline-capable cloud sync
 
 ## Getting Started
 

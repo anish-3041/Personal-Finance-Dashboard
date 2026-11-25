@@ -37,6 +37,14 @@ document.addEventListener("DOMContentLoaded", () => {
     incomeTrend: document.getElementById("income-trend"),
     expenseTrend: document.getElementById("expense-trend"),
     balanceTrend: document.getElementById("balance-trend"),
+    healthRing: document.getElementById("health-ring"),
+    healthScore: document.getElementById("health-score"),
+    healthStatus: document.getElementById("health-status"),
+    healthCaption: document.getElementById("health-caption"),
+    forecastSpend: document.getElementById("forecast-spend"),
+    forecastCaption: document.getElementById("forecast-caption"),
+    dailyEnvelope: document.getElementById("daily-envelope"),
+    insightList: document.getElementById("insight-list"),
 
     // Chart elements
     doughnutChart: document.getElementById("doughnut-chart"),
@@ -129,98 +137,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Initialize UI
     initializeUI();
+    registerServiceWorker();
   }
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").then((reg) => {
-      // When a new service worker is found
-      reg.onupdatefound = () => {
-        const newWorker = reg.installing;
-        newWorker.onstatechange = () => {
-          if (
-            newWorker.state === "installed" &&
-            navigator.serviceWorker.controller
-          ) {
-            // New version available
-            showNotification(
-              "🔄 A new version is available. Click to update.",
-              "info",
-              10000
-            );
-            document.body.addEventListener(
-              "click",
-              function handleUpdateClick() {
-                newWorker.postMessage({ action: "skipWaiting" });
-                window.location.reload();
-                document.body.removeEventListener("click", handleUpdateClick);
-              }
-            );
-          }
-        };
-      };
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
 
-      // Manual update check
-      const btn = document.getElementById("check-updates-btn");
-      if (btn) {
-        btn.addEventListener("click", () => {
-          reg.update().then(() => {
-            showNotification("🔎 Checking for updates...", "info", 3000);
-            setTimeout(() => {
-              if (!reg.waiting && !reg.installing) {
-                showNotification(
-                  "✅ You're already on the latest version.",
-                  "success",
-                  4000
-                );
-              }
-            }, 2500);
-          });
-        });
-      }
-
-      // If SW is already waiting (e.g. app reopened)
-      if (reg.waiting) {
-        showNotification(
-          "🔄 New version ready! Click to update.",
-          "info",
-          10000
-        );
-        document.body.addEventListener("click", function handleUpdateClick() {
-          reg.waiting.postMessage({ action: "skipWaiting" });
-          window.location.reload();
-          document.body.removeEventListener("click", handleUpdateClick);
-        });
-      }
-    });
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then((registration) => {
+        attachUpdateCheckButton(registration);
+      })
+      .catch((error) => {
+        console.warn("Service worker could not be registered:", error);
+      });
   }
 
-  // ✅ Button handler function
   function attachUpdateCheckButton(reg) {
     const updateBtn = document.getElementById("check-updates-btn");
     if (!updateBtn) return;
 
-    updateBtn.addEventListener("click", () => {
-      console.log("📦 Manually checking for updates...");
-      reg
-        .update()
-        .then(() => {
-          showNotification("🔎 Checking for updates...", "info", 4000);
-        })
-        .catch((err) => {
-          console.warn("⚠️ ServiceWorker update failed:", err);
-        });
+    updateBtn.addEventListener("click", async () => {
+      try {
+        await reg.update();
+        if (reg.waiting) {
+          reg.waiting.postMessage({ action: "skipWaiting" });
+          window.location.reload();
+          return;
+        }
+        showNotification("You are using the latest version.", "success", 3500);
+      } catch (error) {
+        console.warn("Service worker update failed:", error);
+        showNotification("Unable to check for updates right now.", "error");
+      }
     });
   }
-
-  navigator.serviceWorker
-    .register("./sw.js")
-    .then((reg) => {
-      console.log("Service Worker registered successfully:", reg);
-      attachUpdateCheckButton(reg);
-    })
-    .catch((err) => {
-      console.error("Service Worker registration failed:", err);
-    });
 
   // Event listeners setup
   function setupEventListeners() {
@@ -264,6 +215,12 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.importFile.addEventListener("change", importData);
     elements.generateReportBtn.addEventListener("click", generateReport);
     elements.addSampleDataBtn.addEventListener("click", addSampleData);
+    document.getElementById("info-btn").addEventListener("click", () => {
+      document.getElementById("info-modal").classList.remove("hidden");
+    });
+    document.getElementById("info-close-btn").addEventListener("click", () => {
+      document.getElementById("info-modal").classList.add("hidden");
+    });
     document.getElementById("reset-data-btn").addEventListener("click", () => {
       showConfirmation(
         "⚠️ This will erase all your saved data. Continue?",
@@ -272,23 +229,6 @@ document.addEventListener("DOMContentLoaded", () => {
           showNotification("Data reset successfully.", "success");
         }
       );
-    });
-
-    // Info modal toggle
-    document.getElementById("info-btn").addEventListener("click", () => {
-      document.getElementById("info-modal").classList.remove("hidden");
-    });
-    document.getElementById("info-close-btn").addEventListener("click", () => {
-      document.getElementById("info-modal").classList.add("hidden");
-    });
-
-    // Close modal when clicking outside the modal content
-    document.querySelectorAll(".modal-overlay").forEach((overlay) => {
-      overlay.addEventListener("click", function (event) {
-        if (event.target === this) {
-          this.classList.add("hidden");
-        }
-      });
     });
   }
 
@@ -437,8 +377,7 @@ document.addEventListener("DOMContentLoaded", () => {
     saveToFirebase();
 
     elements.budgetForm.reset();
-    renderBudgets();
-    updateCharts();
+    renderData();
     showNotification("Budget set successfully!", "success");
   }
 
@@ -471,7 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .toISOString()
       .split("T")[0];
 
-    renderGoals();
+    renderData();
     showNotification("Financial goal added successfully!", "success");
   }
 
@@ -745,6 +684,205 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function formatCurrency(amount, maximumFractionDigits = 0) {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits,
+    }).format(Number(amount) || 0);
+  }
+
+  function escapeHTML(value) {
+    const element = document.createElement("div");
+    element.textContent = value ?? "";
+    return element.innerHTML;
+  }
+
+  // Transparent recommendation engine based on current-month activity, budgets, and goals.
+  function updateSmartInsights() {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    const dayOfMonth = today.getDate();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const daysRemaining = Math.max(daysInMonth - dayOfMonth, 1);
+    const stats = calculateStats();
+    const monthTransactions = state.transactions.filter((transaction) => {
+      const date = new Date(transaction.date);
+      return (
+        date.getFullYear() === currentYear && date.getMonth() === currentMonth
+      );
+    });
+    const monthExpenses = monthTransactions.filter(
+      (transaction) => transaction.type === "expense"
+    );
+    const monthIncome = monthTransactions
+      .filter((transaction) => transaction.type === "income")
+      .reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
+    const monthExpenseTotal = monthExpenses.reduce(
+      (sum, transaction) => sum + Number(transaction.amount || 0),
+      0
+    );
+    const budgetEntries = Object.entries(state.budgets).filter(
+      ([, amount]) => Number(amount) > 0
+    );
+    const budgetPercentages = budgetEntries.map(([category, amount]) => ({
+      category,
+      amount: Number(amount),
+      spent: getSpentAmountByCategory(category),
+      percentage: (getSpentAmountByCategory(category) / Number(amount)) * 100,
+    }));
+
+    if (state.transactions.length === 0) {
+      elements.healthRing.style.setProperty("--score", "0");
+      elements.healthScore.textContent = "0";
+      elements.healthStatus.textContent = "Build your baseline";
+      elements.healthCaption.textContent =
+        "Add income and expenses to calculate a reliable score.";
+      elements.forecastSpend.textContent = formatCurrency(0);
+      elements.forecastCaption.textContent =
+        "Your month-end projection will appear after your first expense.";
+      elements.dailyEnvelope.textContent = formatCurrency(0);
+      elements.insightList.innerHTML =
+        '<li><i class="fas fa-circle-info"></i><span>Start with three recent transactions, one budget, and one savings goal.</span></li>';
+      return;
+    }
+
+    const savingsComponent = clamp(((stats.savingsRate + 10) / 35) * 45, 0, 45);
+    const budgetDiscipline = budgetPercentages.length
+      ? budgetPercentages.reduce((total, budget) => {
+          const percentage = budget.percentage;
+          const categoryScore =
+            percentage <= 70
+              ? 100
+              : percentage <= 90
+                ? 100 - (percentage - 70) * 1.5
+                : Math.max(0, 70 - (percentage - 90) * 3.5);
+          return total + categoryScore;
+        }, 0) / budgetPercentages.length
+      : 60;
+    const goalProgress = state.goals.length
+      ? state.goals.reduce(
+          (total, goal) =>
+            total + clamp((Number(goal.current) / Number(goal.target)) * 100, 0, 100),
+          0
+        ) / state.goals.length
+      : 50;
+    const wellnessScore = Math.round(
+      clamp(savingsComponent + budgetDiscipline * 0.35 + goalProgress * 0.2, 0, 100)
+    );
+    const healthStatus =
+      wellnessScore >= 80
+        ? "Excellent financial rhythm"
+        : wellnessScore >= 60
+          ? "Steady, with room to grow"
+          : "A few habits need attention";
+    const healthCaption =
+      budgetPercentages.length === 0
+        ? "Your score will be more precise after you set category budgets."
+        : `${budgetPercentages.filter((budget) => budget.percentage < 90).length} of ${budgetPercentages.length} budgets are currently below the alert zone.`;
+
+    elements.healthRing.style.setProperty("--score", wellnessScore);
+    elements.healthScore.textContent = wellnessScore;
+    elements.healthStatus.textContent = healthStatus;
+    elements.healthCaption.textContent = healthCaption;
+
+    const projectedSpend = monthExpenseTotal
+      ? (monthExpenseTotal / Math.max(dayOfMonth, 1)) * daysInMonth
+      : 0;
+    const totalBudget = budgetEntries.reduce(
+      (sum, [, amount]) => sum + Number(amount),
+      0
+    );
+    const remainingBudget = totalBudget - monthExpenseTotal;
+    const dailyEnvelope = totalBudget
+      ? Math.max(0, remainingBudget / daysRemaining)
+      : Math.max(0, monthIncome - projectedSpend) / daysRemaining;
+    const projectedNet = monthIncome - projectedSpend;
+
+    elements.forecastSpend.textContent = formatCurrency(projectedSpend);
+    elements.dailyEnvelope.textContent = formatCurrency(dailyEnvelope);
+    elements.forecastCaption.textContent = monthExpenseTotal
+      ? `Based on ${formatCurrency(monthExpenseTotal / Math.max(dayOfMonth, 1))}/day so far · projected net: ${formatCurrency(projectedNet)}`
+      : "Log an expense this month to generate a spending projection.";
+
+    const categoryTotals = monthExpenses.reduce((totals, transaction) => {
+      totals[transaction.category] =
+        (totals[transaction.category] || 0) + Number(transaction.amount || 0);
+      return totals;
+    }, {});
+    const topCategory = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a)[0];
+    const recommendations = [];
+
+    if (topCategory) {
+      const percentage = (topCategory[1] / monthExpenseTotal) * 100;
+      recommendations.push({
+        icon: "fa-chart-pie",
+        text: `${getCategoryName(topCategory[0])} is your largest expense at ${percentage.toFixed(0)}% of this month's spending.`,
+      });
+    }
+
+    const alertBudget = budgetPercentages
+      .filter((budget) => budget.percentage >= 90)
+      .sort((a, b) => b.percentage - a.percentage)[0];
+    if (alertBudget) {
+      recommendations.push({
+        icon: "fa-triangle-exclamation",
+        text: `${getCategoryName(alertBudget.category)} has used ${alertBudget.percentage.toFixed(0)}% of its ${formatCurrency(alertBudget.amount)} budget.`,
+      });
+    } else if (budgetPercentages.length) {
+      recommendations.push({
+        icon: "fa-shield-heart",
+        text: `All ${budgetPercentages.length} monthly budgets are below the 90% alert threshold.`,
+      });
+    } else {
+      recommendations.push({
+        icon: "fa-sliders",
+        text: "Set category budgets to unlock overspending alerts and a daily spending envelope.",
+      });
+    }
+
+    if (monthIncome > 0 && projectedSpend > monthIncome) {
+      recommendations.push({
+        icon: "fa-arrow-trend-down",
+        text: `At this pace, spending could exceed this month's income by ${formatCurrency(projectedSpend - monthIncome)}.`,
+      });
+    } else if (monthIncome > 0) {
+      recommendations.push({
+        icon: "fa-piggy-bank",
+        text: `You are projected to retain ${formatCurrency(projectedNet)} by month end if this pace continues.`,
+      });
+    }
+
+    const nextGoal = state.goals
+      .filter((goal) => new Date(goal.date) >= today && Number(goal.target) > Number(goal.current))
+      .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+    if (nextGoal && recommendations.length < 3) {
+      const monthsLeft = Math.max(
+        1,
+        Math.ceil((new Date(nextGoal.date) - today) / (1000 * 60 * 60 * 24 * 30))
+      );
+      const requiredMonthly =
+        (Number(nextGoal.target) - Number(nextGoal.current)) / monthsLeft;
+      recommendations.push({
+        icon: "fa-bullseye",
+        text: `${escapeHTML(nextGoal.name)} needs ${formatCurrency(requiredMonthly)}/month to reach its target on time.`,
+      });
+    }
+
+    elements.insightList.innerHTML = recommendations
+      .slice(0, 3)
+      .map(
+        (item) =>
+          `<li><i class="fas ${item.icon}"></i><span>${item.text}</span></li>`
+      )
+      .join("");
+  }
+
   // Update trend display with icon and styling
   function updateTrendDisplay(element, trendValue) {
     const trendValueElement = element.querySelector(".trend-value");
@@ -795,9 +933,9 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
         return `
-                  <div class="entry-item fade-in" data-id="${transaction.id}">
+                  <div class="entry-item fade-in" data-id="${escapeHTML(transaction.id)}">
                       <div class="entry-details">
-                          <h4>${transaction.name}</h4>
+                          <h4>${escapeHTML(transaction.name)}</h4>
                           <p><span class="category-${
                             transaction.category
                           }">${getCategoryName(
@@ -815,7 +953,7 @@ document.addEventListener("DOMContentLoaded", () => {
                               } ₹${transaction.amount.toFixed(2)}
                           </span>
                           <button class="edit-btn" data-id="${
-                            transaction.id
+                            escapeHTML(transaction.id)
                           }" data-type="${transaction.type}">
                           <i class="fas fa-pen"></i></button>
                           <button class="delete-btn">
@@ -1029,9 +1167,9 @@ document.addEventListener("DOMContentLoaded", () => {
           monthsLeft > 0 ? remaining / monthsLeft : 0;
 
         return `
-                  <div class="goal-item bounce-in" data-id="${goal.id}">
+                  <div class="goal-item bounce-in" data-id="${escapeHTML(goal.id)}">
                       <div class="goal-header">
-                          <span class="goal-title">${goal.name}</span>
+                          <span class="goal-title">${escapeHTML(goal.name)}</span>
                           <span class="goal-date">Target: ${formattedDate}</span>
                       </div>
                       <div class="goal-progress-container">
@@ -1052,9 +1190,9 @@ document.addEventListener("DOMContentLoaded", () => {
                           )}/month</span>
                       </div>
                       <div class="goal-actions">
-                          <button class="goal-update-btn" onclick="updateGoalProgress('${
+                          <button class="goal-update-btn" data-id="${escapeHTML(
                             goal.id
-                          }')">
+                          )}">
                               Update Progress
                           </button>
                           <button class="delete-btn">
@@ -1071,7 +1209,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Add event listeners
     document.querySelectorAll(".goal-update-btn").forEach((btn) => {
       btn.addEventListener("click", function () {
-        const id = this.parentElement.parentElement.getAttribute("data-id");
+        const id = this.getAttribute("data-id");
         updateGoalProgress(id);
       });
     });
@@ -1543,7 +1681,7 @@ document.addEventListener("DOMContentLoaded", () => {
       other: "Other Income",
     };
 
-    return categories[category] || category;
+    return categories[category] || "Uncategorised";
   }
 
   // Get category key from category name
@@ -1604,8 +1742,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (state.budgets[category]) {
       delete state.budgets[category];
       saveToFirebase();
-      renderBudgets();
-      updateCharts();
+      renderData();
       showNotification("Budget deleted successfully!", "success");
     }
   }
@@ -1617,7 +1754,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (index !== -1) {
       state.goals.splice(index, 1);
       saveToFirebase();
-      renderGoals();
+      renderData();
       showNotification("Goal deleted successfully!", "success");
     }
   }
@@ -1661,7 +1798,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (newAmount !== null && !isNaN(parseFloat(newAmount))) {
       goal.current = parseFloat(newAmount);
       saveToFirebase();
-      renderGoals();
+      renderData();
       showNotification("Goal progress updated!", "success");
     }
   }
@@ -1968,6 +2105,7 @@ This is a simplified version. In a full implementation, a proper PDF would be ge
   // Render all data
   function renderData() {
     updateFinancialSummary();
+    updateSmartInsights();
     renderTransactions();
     renderBudgets();
     renderGoals();

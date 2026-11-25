@@ -3,16 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Personal Finance Dashboard</title>
+    <title>MoneyMitra | Smart Finance Dashboard</title>
     <link rel="manifest" href="./manifest.json" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#155eef" />
     <!-- iOS Meta Tags (Optional but recommended) -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-status-bar-style" content="black" />
     <meta name="mobile-web-app-title" content="Money Mitra" />
-    <link rel="touch-icon" href="./Assets/Images/icon-192x192.png" />
+    <link rel="touch-icon" href="./assets/images/icon-192x192.png" />
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="./Assets/fonts/font-awesome.css?v=1.1.10" />
+    <link rel="stylesheet" href="./assets/fonts/font-awesome.css" />
     <!-- Font Awesome CDN -->
     <link
       rel="stylesheet"
@@ -20,30 +20,21 @@
     />
 
     <!-- Chart.js -->
-    <script src="./js/chart.min.js?v=1.1.10"></script>
+    <script src="./js/chart.min.js"></script>
     <!-- CSS -->
-    <link rel="stylesheet" href="./style.css?v=1.1.10" />
-    <!-- Service Worker Registration -->
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("./sw.js")
-            .then((registration) => {
-              console.log("ServiceWorker registered:", registration);
-            })
-            .catch((err) => {
-              console.error("ServiceWorker registration failed:", err);
-            });
-        });
-      }
-    </script>
+    <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
     <div class="container">
-      <header>
-        <h1>Personal Finance Dashboard</h1>
-        <p>Track your finances, set budgets, and visualize your money flow</p>
+      <header class="app-header">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true"><i class="fas fa-wallet"></i></div>
+          <div>
+            <p class="eyebrow">Personal finance, made actionable</p>
+            <h1>MoneyMitra</h1>
+            <p>Track, plan, and understand every rupee with confidence.</p>
+          </div>
+        </div>
 
         <!-- Theme Toggle -->
         <div class="theme-toggle">
@@ -85,6 +76,47 @@
           <div class="savings-tip" id="savings-tip">Aim for 20% or more</div>
         </div>
       </div>
+
+      <section class="smart-insights fade-in" aria-labelledby="smart-insights-title">
+        <div class="smart-insights-heading">
+          <div>
+            <p class="eyebrow"><i class="fas fa-wand-magic-sparkles"></i> Smart money coach</p>
+            <h2 id="smart-insights-title">Your next best financial move</h2>
+          </div>
+          <p class="insights-method">Personalised from your recorded transactions and monthly budgets.</p>
+        </div>
+        <div class="smart-insights-grid">
+          <article class="insight-panel health-panel">
+            <div class="panel-label"><i class="fas fa-heart-pulse"></i> Financial wellness</div>
+            <div class="health-layout">
+              <div class="health-ring" id="health-ring" style="--score: 0" aria-label="Financial wellness score">
+                <span id="health-score">0</span><small>/100</small>
+              </div>
+              <div>
+                <h3 id="health-status">Build your baseline</h3>
+                <p id="health-caption">Add a few transactions to receive your first wellness score.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="insight-panel forecast-panel">
+            <div class="panel-label"><i class="fas fa-chart-line"></i> Month-end forecast</div>
+            <div class="forecast-value" id="forecast-spend">₹0</div>
+            <p id="forecast-caption">Your projected spending will appear here.</p>
+            <div class="forecast-metric">
+              <span>Suggested daily envelope</span>
+              <strong id="daily-envelope">₹0</strong>
+            </div>
+          </article>
+
+          <article class="insight-panel recommendations-panel">
+            <div class="panel-label"><i class="fas fa-lightbulb"></i> What to focus on</div>
+            <ul class="insight-list" id="insight-list" aria-live="polite">
+              <li><i class="fas fa-circle-info"></i><span>Add transactions, budgets, and goals to unlock tailored guidance.</span></li>
+            </ul>
+          </article>
+        </div>
+      </section>
 
       <div class="dashboard-grid">
         <div class="card fade-in">
@@ -425,14 +457,13 @@
               <button id="check-updates-btn" class="plain-btn">
                 <i class="fas fa-rotate"></i> Check for Updates
               </button>
-              <!-- Info Button -->
               <button id="info-btn" class="plain-btn">
                 <i class="fas fa-info-circle"></i> Info
               </button>
             </div>
           </div>
           <div class="footer-info">
-            <p>Personal Finance Dashboard 1.1.10 &copy; Anish Kumar</p>
+            <p>MoneyMitra 2.0 &copy; Anish Kumar</p>
           </div>
           <div id="device-id" class="device-id">
             <span>Device ID: <span id="user-id-text"></span></span>
@@ -547,6 +578,9 @@
               interactive graphs.
             </li>
             <li>
+              <strong>Smart Money Coach:</strong> Uses transparent rules to calculate a wellness score, month-end spending forecast, and personalised next steps.
+            </li>
+            <li>
               <strong>Theme Toggle:</strong> Switch between Light and Dark
               modes.
             </li>
@@ -627,6 +661,6 @@
       window.firebaseSetDoc = setDoc;
     </script>
 
-    <script src="./js/script.js?v=1.1.10"></script>
+    <script src="./js/script.js"></script>
   </body>
 </html>
